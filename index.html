@@ -35,7 +35,12 @@
 
     document.getElementById("btnEnviar").addEventListener("click", () => {
       alert("Botón presionado. Enviando...");
-      tg.sendData("Hola");
+      try {
+          tg.sendData("Hola");
+          console.log("✅ sendData ejecutado");
+        } catch (err) {
+          alert("❌ Error al enviar: " + err.message);
+        }
     });
   </script>
 </body>
