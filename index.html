@@ -2,45 +2,22 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>MiniApp Test Telegram</title>
+  <title>MiniApp Test</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 40px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #0088cc;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-  </style>
 </head>
-<body>
-  <h1>MiniApp de Telegram</h1>
-  <p id="usuario">Cargando usuario...</p>
-  <button id="btnEnviar">Enviar "Hola" al bot</button>
+<body style="text-align:center;padding:30px">
+  <h2>MiniApp Test</h2>
+  <p id="userInfo">Cargando...</p>
+  <button id="btnEnviar">Enviar "Hola"</button>
 
   <script>
     const tg = Telegram.WebApp;
     tg.expand();
-
-    const user = tg.initDataUnsafe?.user;
-    document.getElementById("usuario").textContent = user ? `Hola, ${user.first_name}` : "No estás en Telegram";
+    document.getElementById("userInfo").innerText = "Hola " + (tg.initDataUnsafe?.user?.first_name || "usuario");
 
     document.getElementById("btnEnviar").addEventListener("click", () => {
-      alert("Botón presionado. Enviando...");
-      try {
-          tg.sendData("Hola");
-          console.log("✅ sendData ejecutado");
-        } catch (err) {
-          alert("❌ Error al enviar: " + err.message);
-        }
+      alert("Enviando...");
+      tg.sendData("Hola");
     });
   </script>
 </body>
