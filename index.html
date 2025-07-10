@@ -36,7 +36,8 @@
 
   <script>
     const tg = window.Telegram.WebApp;
-
+     alert("tg?: " + (tg ? "sí" : "no"));
+     alert("initDataUnsafe.user?: " + JSON.stringify(tg.initDataUnsafe?.user));
     function enviarHola() {
       tg.sendData("Hola");
       
