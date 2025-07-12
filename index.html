@@ -1,21 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>MiniApp Test</title>
+  <title>MiniApp con MainButton</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      text-align: center;
+      padding: 30px;
+      font-family: sans-serif;
+    }
+  </style>
 </head>
-<body style="text-align:center;padding:30px">
- <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>
+<body>
+
+  <h2>MiniApp de Prueba con MainButton</h2>
+  <p>Presiona el botón de abajo de Telegram para enviar "hola" al bot.</p>
+
+  <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
+    tg.expand();
 
-    function enviar() {
-        tg.sendData("hola");
-    }
-</script>
+    tg.MainButton.setText("Enviar 'hola' al bot");
+    tg.MainButton.show();
 
-<button onclick="enviar()">Enviar 'hola' al bot</button>
+    tg.MainButton.onClick(() => {
+      console.log("➡️ Enviando desde MainButton");
+      tg.sendData("hola");
+    });
+
+    console.log("✅ MiniApp cargada con MainButton");
+  </script>
 
 </body>
 </html>
