@@ -3,22 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>MiniApp Test</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body style="text-align:center;padding:30px">
-  <h2>MiniApp Test</h2>
-  <p id="userInfo">Cargando...</p>
-  <button id="btnEnviar">Enviar "Hola"</button>
+ <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
 
-  <script>
-    const tg = Telegram.WebApp;
-    tg.expand();
-    document.getElementById("userInfo").innerText = "Hola " + (tg.initDataUnsafe?.user?.first_name || "usuario");
+    function enviar() {
+        tg.sendData("hola");
+    }
+</script>
 
-    document.getElementById("btnEnviar").addEventListener("click", () => {
-      alert("Enviando...");
-      tg.sendData("Hola");
-    });
-  </script>
+<button onclick="enviar()">Enviar 'hola' al bot</button>
+
 </body>
 </html>
