@@ -10,24 +10,34 @@
       padding: 30px;
       font-family: sans-serif;
     }
+    input {
+      padding: 10px;
+      width: 80%;
+      max-width: 300px;
+      font-size: 16px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
 
   <h2>MiniApp de Prueba con MainButton</h2>
-  <p>Presiona el botón de abajo de Telegram para enviar "hola" al bot.</p>
+  <p>Escribe algo y presiona el botón de Telegram para enviarlo al bot.</p>
+
+  <input type="text" id="userInput" placeholder="Escribe tu mensaje aquí">
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    tg.MainButton.setText("Enviar 'hola' al bot");
+    tg.MainButton.setText("Enviar mensaje al bot");
     tg.MainButton.show();
 
     tg.MainButton.onClick(() => {
-      console.log("➡️ Enviando desde MainButton");
-      tg.sendData("hola");
+      const inputValue = document.getElementById("userInput").value;
+      console.log("➡️ Enviando desde MainButton:", inputValue);
+      tg.sendData(inputValue); // Envía el contenido del input
     });
 
     console.log("✅ MiniApp cargada con MainButton");
