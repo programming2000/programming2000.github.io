@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flujo Paso a Paso</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step.active {
+      display: block;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .platforms {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .platforms button {
+      background-color: #17a2b8;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .progress-container {
+      height: 10px;
+      background: #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #28a745;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .summary {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .confirm-buttons button {
+      background-color: #28a745;
+    }
+
+    .cancel-btn {
+      background-color: #dc3545 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="step active" id="step1">
+      <h2>1. Selecciona la plataforma</h2>
+      <div class="platforms">
+        <button onclick="selectPlatform('WhatsApp')">WhatsApp</button>
+        <button onclick="selectPlatform('Telegram')">Telegram</button>
+        <button onclick="selectPlatform('Instagram')">Instagram</button>
+        <button onclick="selectPlatform('Facebook')">Facebook</button>
+      </div>
+    </div>
+
+    <div class="step" id="step2">
+      <h2>2. Ingresa el usuario de destino</h2>
+      <input type="text" id="userInput" placeholder="Ej: @usuario123" />
+    </div>
+
+    <div class="step" id="step3">
+      <h2>3. Ingresa el monto</h2>
+      <input type="number" id="amountInput" placeholder="Monto en USD" />
+    </div>
+
+    <div class="step" id="step4">
+      <h2>Confirmación</h2>
+      <div class="summary" id="summaryText"></div>
+      <div class="confirm-buttons">
+        <button onclick="convertir()">Convertir</button>
+        <button class="cancel-btn" onclick="cancelar()">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="prevBtn" onclick="changeStep(-1)" disabled>Anterior</button>
+      <button id="nextBtn" onclick="changeStep(1)">Siguiente</button>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const steps = document.querySelectorAll('.step');
+    const progressBar = document.getElementById('progressBar');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let plataformaSeleccionada = '';
+    
+    function updateProgress() {
+      const percentage = (currentStep / (steps.length - 1)) * 100;
+      progressBar.style.width = percentage + '%';
+    }
+
+    function showStep(index) {
+      steps.forEach((step, i) => {
+        step.classList.toggle('active', i === index);
+      });
+      prevBtn.disabled = index === 0;
+      nextBtn.style.display = index === steps.length - 1 ? 'none' : 'inline-block';
+      updateProgress();
+
+      // Mostrar resumen al llegar al paso de confirmación
+      if (index === 3) {
+        const usuario = document.getElementById('userInput').value;
+        const monto = document.getElementById('amountInput').value;
+        const resumen = `
+          <p><strong>Plataforma:</strong> ${plataformaSeleccionada}</p>
+          <p><strong>Usuario:</strong> ${usuario}</p>
+          <p><strong>Monto:</strong> $${parseFloat(monto).toFixed(2)}</p>
+        `;
+        document.getElementById('summaryText').innerHTML = resumen;
+      }
+    }
+
+    function changeStep(direction) {
+      if (direction === 1) {
+        if (currentStep === 1 && !document.getElementById('userInput').value.trim()) {
+          alert('Por favor ingresa el usuario de destino.');
+          return;
+        }
+        if (currentStep === 2 && !document.getElementById('amountInput').value.trim()) {
+          alert('Por favor ingresa el monto.');
+          return;
+        }
+      }
+
+      currentStep += direction;
+      if (currentStep >= steps.length) {
+        return;
+      }
+      showStep(currentStep);
+    }
+
+    function selectPlatform(name) {
+      plataformaSeleccionada = name;
+      changeStep(1);
+    }
+
+    function convertir() {
+      alert("✅ Conversión realizada exitosamente.");
+      // Aquí puedes agregar la lógica para enviar los datos al servidor
+    }
+
+    function cancelar() {
+      if (confirm("¿Estás seguro de cancelar el proceso?")) {
+        currentStep = 0;
+        showStep(currentStep);
+        document.getElementById('userInput').value = '';
+        document.getElementById('amountInput').value = '';
+        plataformaSeleccionada = '';
+      }
+    }
+
+    showStep(currentStep);
+  </script>
+</body>
+</html>
