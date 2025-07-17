@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Flujo Paso a Paso</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -114,27 +115,42 @@
       <div class="progress-bar" id="progressBar"></div>
     </div>
 
+    <!-- Paso 1 -->
     <div class="step active" id="step1">
-      <h2>1. Selecciona la plataforma</h2>
+      <h2>1. Seleccione plataforma de Origen</h2>
       <div class="platforms">
-        <button onclick="selectPlatform('WhatsApp')">WhatsApp</button>
-        <button onclick="selectPlatform('Telegram')">Telegram</button>
-        <button onclick="selectPlatform('Instagram')">Instagram</button>
-        <button onclick="selectPlatform('Facebook')">Facebook</button>
+        <button onclick="selectPlatform('Apueston', 'origen')">Apueston</button>
+        <button onclick="selectPlatform('Metabet', 'origen')">Metabet</button>
+        <button onclick="selectPlatform('PPPoker SOL', 'origen')">PPPoker SOL</button>
+        <button onclick="selectPlatform('PPPoker BOL', 'origen')">PPPoker BOL</button>
       </div>
     </div>
 
+    <!-- Paso 2 -->
     <div class="step" id="step2">
-      <h2>2. Ingresa el usuario de destino</h2>
+      <h2>2. Seleccione plataforma de Destino</h2>
+      <div class="platforms">
+        <button onclick="selectPlatform('Apueston', 'destino')">Apueston</button>
+        <button onclick="selectPlatform('Metabet', 'destino')">Metabet</button>
+        <button onclick="selectPlatform('PPPoker SOL', 'destino')">PPPoker SOL</button>
+        <button onclick="selectPlatform('PPPoker BOL', 'destino')">PPPoker BOL</button>
+      </div>
+    </div>
+
+    <!-- Paso 3 -->
+    <div class="step" id="step3">
+      <h2>3. Ingrese el usuario que recibirá el crédito</h2>
       <input type="text" id="userInput" placeholder="Ej: @usuario123" />
     </div>
 
-    <div class="step" id="step3">
-      <h2>3. Ingresa el monto</h2>
+    <!-- Paso 4 -->
+    <div class="step" id="step4">
+      <h2>4. Ingrese el monto a pasar</h2>
       <input type="number" id="amountInput" placeholder="Monto en USD" />
     </div>
 
-    <div class="step" id="step4">
+    <!-- Paso 5: Confirmación -->
+    <div class="step" id="step5">
       <h2>Confirmación</h2>
       <div class="summary" id="summaryText"></div>
       <div class="confirm-buttons">
@@ -150,13 +166,19 @@
   </div>
 
   <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
     let currentStep = 0;
     const steps = document.querySelectorAll('.step');
     const progressBar = document.getElementById('progressBar');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
-    let plataformaSeleccionada = '';
-    
+
+    let origen = '';
+    let destino = '';
+
     function updateProgress() {
       const percentage = (currentStep / (steps.length - 1)) * 100;
       progressBar.style.width = percentage + '%';
@@ -166,59 +188,72 @@
       steps.forEach((step, i) => {
         step.classList.toggle('active', i === index);
       });
+
       prevBtn.disabled = index === 0;
       nextBtn.style.display = index === steps.length - 1 ? 'none' : 'inline-block';
+
       updateProgress();
 
-      // Mostrar resumen al llegar al paso de confirmación
-      if (index === 3) {
+      if (index === 4) {
         const usuario = document.getElementById('userInput').value;
-        const monto = document.getElementById('amountInput').value;
-        const resumen = `
-          <p><strong>Plataforma:</strong> ${plataformaSeleccionada}</p>
+        const monto = parseFloat(document.getElementById('amountInput').value).toFixed(2);
+        document.getElementById('summaryText').innerHTML = `
+          <p><strong>Origen:</strong> ${origen}</p>
+          <p><strong>Destino:</strong> ${destino}</p>
           <p><strong>Usuario:</strong> ${usuario}</p>
-          <p><strong>Monto:</strong> $${parseFloat(monto).toFixed(2)}</p>
+          <p><strong>Monto:</strong> $${monto}</p>
         `;
-        document.getElementById('summaryText').innerHTML = resumen;
       }
     }
 
     function changeStep(direction) {
       if (direction === 1) {
-        if (currentStep === 1 && !document.getElementById('userInput').value.trim()) {
+        if (currentStep === 2 && !document.getElementById('userInput').value.trim()) {
           alert('Por favor ingresa el usuario de destino.');
           return;
         }
-        if (currentStep === 2 && !document.getElementById('amountInput').value.trim()) {
+        if (currentStep === 3 && !document.getElementById('amountInput').value.trim()) {
           alert('Por favor ingresa el monto.');
           return;
         }
       }
 
       currentStep += direction;
-      if (currentStep >= steps.length) {
-        return;
-      }
+      if (currentStep >= steps.length) return;
       showStep(currentStep);
     }
 
-    function selectPlatform(name) {
-      plataformaSeleccionada = name;
+    function selectPlatform(value, tipo) {
+      if (tipo === 'origen') {
+        origen = value;
+      } else {
+        destino = value;
+      }
       changeStep(1);
     }
 
     function convertir() {
-      alert("✅ Conversión realizada exitosamente.");
-      // Aquí puedes agregar la lógica para enviar los datos al servidor
+      const usuario = document.getElementById('userInput').value.trim();
+      const monto = parseFloat(document.getElementById('amountInput').value).toFixed(2);
+
+      const datos = {
+        origen,
+        destino,
+        usuario,
+        monto
+      };
+
+      tg.sendData(JSON.stringify(datos));
     }
 
     function cancelar() {
-      if (confirm("¿Estás seguro de cancelar el proceso?")) {
-        currentStep = 0;
-        showStep(currentStep);
+      if (confirm("¿Deseas cancelar y volver al inicio?")) {
+        origen = '';
+        destino = '';
         document.getElementById('userInput').value = '';
         document.getElementById('amountInput').value = '';
-        plataformaSeleccionada = '';
+        currentStep = 0;
+        showStep(currentStep);
       }
     }
 
