@@ -33,6 +33,7 @@
       width: 100%;
       max-width: 400px;
       box-sizing: border-box;
+      z-index: 1;
     }
 
     h2 {
@@ -79,19 +80,44 @@
       background-color: var(--btn-hover);
     }
 
-    #confirmation {
+    /* Modal */
+    .modal-overlay {
       display: none;
-      margin-top: 20px;
-      padding: 20px;
-      border-radius: 12px;
-      background-color: #f0f6ff;
-      border: 1px solid var(--primary-color);
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(3px);
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
     }
 
-    #summaryText {
+    .modal {
+      background-color: #fff;
+      padding: 25px 20px;
+      border-radius: 14px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal h3 {
+      margin-top: 0;
+      color: var(--primary-color);
+    }
+
+    .modal p {
       white-space: pre-line;
+      margin: 15px 0;
       color: #333;
-      margin-bottom: 15px;
     }
 
     .button-group {
@@ -101,8 +127,11 @@
 
     .button-group button {
       flex: 1;
-      background-color: #e0e6ed;
-      color: #333;
+      padding: 10px;
+      border: none;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
     }
 
     .button-group button:first-child {
@@ -110,8 +139,9 @@
       color: white;
     }
 
-    .button-group button:hover {
-      opacity: 0.9;
+    .button-group button:last-child {
+      background-color: #e0e6ed;
+      color: #333;
     }
   </style>
 </head>
@@ -142,8 +172,11 @@
     </div>
 
     <button id="retirarBtn">Retirar</button>
+  </div>
 
-    <div id="confirmation">
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
       <h3>Confirmar</h3>
       <p id="summaryText"></p>
       <div class="button-group">
@@ -159,7 +192,7 @@
     tg.expand();
 
     const retirarBtn = document.getElementById('retirarBtn');
-    const confirmation = document.getElementById('confirmation');
+    const modalOverlay = document.getElementById('modalOverlay');
     const summaryText = document.getElementById('summaryText');
     const confirmYes = document.getElementById('confirmYes');
     const confirmNo = document.getElementById('confirmNo');
@@ -175,7 +208,7 @@
       }
 
       summaryText.textContent = `Usuario: ${userId}\nPlataforma: ${platform}\nMonto: Bs ${parseFloat(amount).toFixed(2)}`;
-      confirmation.style.display = 'block';
+      modalOverlay.style.display = 'flex';
     });
 
     confirmYes.addEventListener('click', () => {
@@ -193,7 +226,7 @@
     });
 
     confirmNo.addEventListener('click', () => {
-      confirmation.style.display = 'none';
+      modalOverlay.style.display = 'none';
     });
   </script>
 
