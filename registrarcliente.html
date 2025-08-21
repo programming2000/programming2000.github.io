@@ -13,7 +13,7 @@
   body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
   .container{width:100%;max-width:420px;background:var(--card);padding:28px 22px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
   h2{margin:0 0 20px;text-align:center;color:var(--primary)}
-  .row{display:flex;gap:10px}
+  .row{display:flex;gap:10px;align-items:center}
   .row > *{flex:1}
   .input-group{margin-bottom:16px}
   label{display:block;font-weight:600;color:var(--text);margin-bottom:6px}
@@ -24,6 +24,29 @@
   button{width:100%;background:var(--primary);color:#fff;border:0;padding:12px;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;transition:background-color .25s ease;margin-top:6px}
   button:hover{background:var(--hover)}
   button:disabled{opacity:.6;cursor:not-allowed}
+  .divider{height:1px;background:#e6edf5;margin:14px 0}
+
+  /* === CHECKBOXES EXACTOS AL EJEMPLO === */
+  .checkbox{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin:8px 0;
+  }
+  .checkbox input{accent-color:var(--primary); margin:0;}
+  .checkbox span{white-space:nowrap;} /* evita saltos en el texto del check */
+
+  /* Subformularios bajo cada check, como en el ejemplo */
+  .subform{display:none; margin:8px 0 0 0}
+  .subform .row{margin-top:8px}
+
+  /* Prefijo visual para los links (metabet/apueston) */
+  .prefix{
+    flex:0 0 auto;
+    background:#f7f9fc; border:1px solid var(--border); border-radius:10px;
+    padding:11px 12px; white-space:nowrap; max-width:100%; overflow:auto
+  }
+
   /* Modal */
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);z-index:10;align-items:center;justify-content:center}
   .modal-overlay.show{display:flex}
@@ -50,7 +73,6 @@
     <div class="input-group">
       <label for="username">Usuario de Telegram (sin @)</label>
       <input id="username" type="text" placeholder="Ej. juan_perez" inputmode="latin" autocapitalize="off" autocomplete="username" />
-      <div class="hint">5–32 caracteres. Solo letras, números y “_”. No uses @.</div>
       <div id="usernameMsg" class="error">Username inválido. Usa 5–32 caracteres [a-z, 0-9, _], sin @.</div>
     </div>
 
@@ -71,8 +93,55 @@
         </select>
         <input id="telefono" type="tel" placeholder="Número local (solo dígitos)" autocomplete="tel" />
       </div>
-      
       <div id="telefonoMsg" class="error">Número inválido para el país seleccionado.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- === Checks como tu ejemplo + subformularios === -->
+    <div class="input-group">
+      <label>Estado actual del cliente</label>
+
+      <label class="checkbox" for="hasMetabet">
+        <input type="checkbox" id="hasMetabet" />
+        <span>Ya tiene Metabet</span>
+      </label>
+      <div id="metabetFields" class="subform">
+        <div class="row">
+          <input id="metabetId" type="text" placeholder="ID Metabet" />
+        </div>
+        <div class="row">
+          <div class="prefix">https://metabet.tv/es/auth/agent/</div>
+          <input id="metabetLinkSuffix" type="text" placeholder="" aria-label="Sufijo Metabet (alfanumérico)" />
+        </div>
+        <div id="metabetMsg" class="error">Completa ID y un sufijo alfanumérico válido para Metabet.</div>
+      </div>
+
+      <label class="checkbox" for="hasApueston">
+        <input type="checkbox" id="hasApueston" />
+        <span>Ya tiene Apueston</span>
+      </label>
+      <div id="apuestonFields" class="subform">
+        <div class="row">
+          <input id="apuestonId" type="text" placeholder="ID Apueston" />
+        </div>
+        <div class="row">
+          <div class="prefix">https://apuestonvip.com/auth/</div>
+          <input id="apuestonLinkSuffix" type="text" placeholder="" aria-label="Sufijo Apueston (alfanumérico)" />
+        </div>
+        <div id="apuestonMsg" class="error">Completa ID y un sufijo alfanumérico válido para Apueston.</div>
+      </div>
+
+      <label class="checkbox" for="hasPPP">
+        <input type="checkbox" id="hasPPP" />
+        <span>Ya tiene IDPPP</span>
+      </label>
+      <div id="pppFields" class="subform">
+        <div class="row">
+          <input id="pppId" type="number" inputmode="numeric" placeholder="ID PPP (numérico)" />
+        </div>
+        <div id="pppMsg" class="error">Ingresa un IDPPP numérico válido (mayor a 0).</div>
+      </div>
     </div>
 
     <button id="registrarBtn" disabled>Registrar</button>
@@ -109,64 +178,141 @@
   const confirmYes = $('#confirmYes');
   const confirmNo = $('#confirmNo');
 
+  // Checks / subforms
+  const hasMetabet = $('#hasMetabet');
+  const metabetFields = $('#metabetFields');
+  const metabetId = $('#metabetId');
+  const metabetLinkSuffix = $('#metabetLinkSuffix');
+  const metabetMsg = $('#metabetMsg');
+  const METABET_PREFIX = 'https://metabet.tv/es/auth/agent/';
+
+  const hasApueston = $('#hasApueston');
+  const apuestonFields = $('#apuestonFields');
+  const apuestonId = $('#apuestonId');
+  const apuestonLinkSuffix = $('#apuestonLinkSuffix');
+  const apuestonMsg = $('#apuestonMsg');
+  const APUESTON_PREFIX = 'https://apuestonvip.com/auth/';
+
+  const hasPPP = $('#hasPPP');
+  const pppFields = $('#pppFields');
+  const pppId = $('#pppId');
+  const pppMsg = $('#pppMsg');
+
   // Validators
   const isValidNombre = (v) => {
     const s = v.trim();
     return s.length >= 4 && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' ]+$/.test(s);
   };
-
-  // Username sin @, 5–32, alfanumérico + _
   const sanitizeUsername = (v) => v.trim().replace(/^@+/, '');
   const isValidUsername = (v) => /^[A-Za-z0-9_]{5,32}$/.test(sanitizeUsername(v));
 
-  // Teléfonos
   const onlyDigits = (v) => v.replace(/\D/g, '');
-
   function isValidPhone(country, localNumber) {
     const digits = onlyDigits(localNumber);
-
-    if (country === '+591') {
-      // Bolivia: 8 dígitos, empieza 2–7
-      return /^[2-7]\d{7}$/.test(digits);
-    } else {
-      // Validación E.164 genérica (sin el + y sin el código): 6–14 dígitos
-      return /^\d{6,14}$/.test(digits);
-    }
+    if (country === '+591') return /^[2-7]\d{7}$/.test(digits);   // Bolivia: 8 dígitos
+    return /^\d{6,14}$/.test(digits);                             // genérico
   }
+
+  const isAlphaNumSlug = (v) => /^[A-Za-z0-9_-]+$/.test(v.trim());
+  const isPositiveInt = (v) => /^\d+$/.test(String(v).trim()) && Number(v) > 0;
 
   function setFieldState(inputEl, msgEl, isValid) {
     if (isValid) {
-      inputEl.setAttribute('aria-invalid', 'false');
+      inputEl?.setAttribute('aria-invalid', 'false');
       msgEl.style.display = 'none';
-      inputEl.style.borderColor = 'var(--border)';
+      if (inputEl) inputEl.style.borderColor = 'var(--border)';
     } else {
-      inputEl.setAttribute('aria-invalid', 'true');
+      inputEl?.setAttribute('aria-invalid', 'true');
       msgEl.style.display = 'block';
-      inputEl.style.borderColor = 'var(--error)';
+      if (inputEl) inputEl.style.borderColor = 'var(--error)';
     }
+  }
+
+  const toggle = (panel, on) => panel.style.display = on ? 'block' : 'none';
+
+  function validateExtras(){
+    let ok = true;
+
+    if (hasMetabet.checked) {
+      const okM = metabetId.value.trim().length > 0 && isAlphaNumSlug(metabetLinkSuffix.value);
+      setFieldState(metabetId, metabetMsg, okM);
+      if (!okM) metabetMsg.style.display = 'block';
+      ok = ok && okM;
+    } else {
+      metabetMsg.style.display = 'none';
+    }
+
+    if (hasApueston.checked) {
+      const okA = apuestonId.value.trim().length > 0 && isAlphaNumSlug(apuestonLinkSuffix.value);
+      setFieldState(apuestonId, apuestonMsg, okA);
+      if (!okA) apuestonMsg.style.display = 'block';
+      ok = ok && okA;
+    } else {
+      apuestonMsg.style.display = 'none';
+    }
+
+    if (hasPPP.checked) {
+      const okP = isPositiveInt(pppId.value);
+      setFieldState(pppId, pppMsg, okP);
+      if (!okP) pppMsg.style.display = 'block';
+      ok = ok && okP;
+    } else {
+      pppMsg.style.display = 'none';
+    }
+
+    return ok;
   }
 
   function validateAll() {
     const okNombre = isValidNombre(nombre.value);
     const okUser = isValidUsername(username.value);
     const okTel  = isValidPhone(countryCode.value, telefono.value);
+    const okExtras = validateExtras();
 
     setFieldState(nombre, nombreMsg, okNombre);
     setFieldState(username, usernameMsg, okUser);
     setFieldState(telefono, telefonoMsg, okTel);
 
-    btn.disabled = !(okNombre && okUser && okTel);
-    return okNombre && okUser && okTel;
+    btn.disabled = !(okNombre && okUser && okTel && okExtras);
+    return okNombre && okUser && okTel && okExtras;
   }
 
   ['input','blur','change'].forEach(evt => {
-    nombre.addEventListener(evt, validateAll);
-    username.addEventListener(evt, validateAll);
-    telefono.addEventListener(evt, validateAll);
-    countryCode.addEventListener(evt, validateAll);
+    [nombre, username, telefono, countryCode,
+     hasMetabet, hasApueston, hasPPP,
+     metabetId, metabetLinkSuffix,
+     apuestonId, apuestonLinkSuffix,
+     pppId].forEach(el => el.addEventListener(evt, validateAll));
   });
 
-  // Abrir modal al registrar
+  [hasMetabet, hasApueston, hasPPP].forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      toggle(metabetFields, hasMetabet.checked);
+      toggle(apuestonFields, hasApueston.checked);
+      toggle(pppFields, hasPPP.checked);
+      validateAll();
+    });
+  });
+
+  // Inicial
+  toggle(metabetFields, false);
+  toggle(apuestonFields, false);
+  toggle(pppFields, false);
+
+  // Modal helpers
+  const openModal = (txt) => {
+    summaryText.textContent = txt;
+    modalOverlay.classList.add('show');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+  };
+  const closeModal = () => {
+    modalOverlay.classList.remove('show');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+  };
+  confirmNo.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  // Abrir modal
   btn.addEventListener('click', () => {
     if (!validateAll()) return;
 
@@ -174,30 +320,50 @@
     const userVal = sanitizeUsername(username.value);
     const phoneIntl = countryCode.value + onlyDigits(telefono.value);
 
-    summaryText.textContent =
-`Nombre: ${nameVal}
-Usuario: ${userVal}
-Teléfono: ${phoneIntl}`;
+    const lines = [
+      `Nombre: ${nameVal}`,
+      `Usuario: ${userVal}`,
+      `Teléfono: ${phoneIntl}`
+    ];
 
-    modalOverlay.classList.add('show');
-    modalOverlay.setAttribute('aria-hidden', 'false');
+    if (hasMetabet.checked) {
+      lines.push(`Metabet: Sí (ID=${metabetId.value.trim()}, Link=${METABET_PREFIX}${metabetLinkSuffix.value.trim()})`);
+    } else { lines.push(`Metabet: No`); }
+
+    if (hasApueston.checked) {
+      lines.push(`Apueston: Sí (ID=${apuestonId.value.trim()}, Link=${APUESTON_PREFIX}${apuestonLinkSuffix.value.trim()})`);
+    } else { lines.push(`Apueston: No`); }
+
+    if (hasPPP.checked) {
+      lines.push(`IDPPP: Sí (ID=${pppId.value.trim()})`);
+    } else { lines.push(`IDPPP: No`); }
+
+    openModal(lines.join('\n'));
   });
 
-  // Cerrar modal
-  function closeModal(){
-    modalOverlay.classList.remove('show');
-    modalOverlay.setAttribute('aria-hidden', 'true');
-  }
-  confirmNo.addEventListener('click', closeModal);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-  // Confirmar -> enviar
+  // Enviar al bot
   confirmYes.addEventListener('click', () => {
     const payload = {
       tipo: 'registro_cliente',
       nombre: nombre.value.trim(),
-      username: sanitizeUsername(username.value), // sin @
-      telefono: countryCode.value + onlyDigits(telefono.value) // siempre con código
+      username: sanitizeUsername(username.value),
+      telefono: countryCode.value + onlyDigits(telefono.value),
+      estado_cliente: {
+        metabet: hasMetabet.checked ? {
+          tiene: true,
+          id: metabetId.value.trim(),
+          link: (METABET_PREFIX + metabetLinkSuffix.value.trim())
+        } : { tiene: false },
+        apueston: hasApueston.checked ? {
+          tiene: true,
+          id: apuestonId.value.trim(),
+          link: (APUESTON_PREFIX + apuestonLinkSuffix.value.trim())
+        } : { tiene: false },
+        idppp: hasPPP.checked ? {
+          tiene: true,
+          id: Number(pppId.value.trim())
+        } : { tiene: false }
+      }
     };
 
     if (tg?.sendData) {
