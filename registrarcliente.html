@@ -41,7 +41,7 @@
   .divider{height:1px; background:#e6edf5; margin:14px 0}
 
   /* CHECKS: pegados totalmente a la izquierda */
-  .checkbox{
+    .checkbox{
     display:flex; align-items:flex-start; gap:10px; margin:8px 0;
     width:100%; justify-content:flex-start; /* izquierda */
   }
@@ -113,9 +113,9 @@
           <input id="metabetId" type="text" placeholder="ID Metabet" />
         </div>
         <div class="row">
-          <input id="metabetLink" type="url" placeholder="https://metabet.tv/es/auth/agent/..." />
+          <input id="metabetLink" type="url" placeholder="(opcional) https://metabet.tv/es/auth/agent/..." />
         </div>
-        <div id="metabetMsg" class="error">Completa ID y un link válido (http/https) para Metabet.</div>
+        <div id="metabetMsg" class="error">El ID es obligatorio si marcas Metabet. El link es opcional.</div>
       </div>
 
       <label class="checkbox" for="hasApueston">
@@ -127,9 +127,9 @@
           <input id="apuestonId" type="text" placeholder="ID Apueston" />
         </div>
         <div class="row">
-          <input id="apuestonLink" type="url" placeholder="https://apuestonvip.com/auth/..." />
+          <input id="apuestonLink" type="url" placeholder="(opcional) https://apuestonvip.com/auth/..." />
         </div>
-        <div id="apuestonMsg" class="error">Completa ID y un link válido (http/https) para Apueston.</div>
+        <div id="apuestonMsg" class="error">El ID es obligatorio si marcas Apueston. El link es opcional.</div>
       </div>
 
       <label class="checkbox" for="hasPPP">
@@ -140,7 +140,7 @@
         <div class="row">
           <input id="pppId" type="number" inputmode="numeric" placeholder="ID PPP (numérico)" />
         </div>
-        <div id="pppMsg" class="error">Ingresa un IDPPP numérico válido (mayor a 0).</div>
+        <div id="pppMsg" class="error">Ingresa un IDPPP numérico válido.</div>
       </div>
     </div>
 
@@ -214,15 +214,19 @@
   const isValidUrl = (v) => /^(https?:\/\/)[^\s]+$/i.test(v.trim());
   const isPositiveInt = (v) => /^\d+$/.test(String(v).trim()) && Number(v) > 0;
 
+  function setBorder(el, ok){
+    if(!el) return;
+    el.style.borderColor = ok ? 'var(--border)' : 'var(--error)';
+  }
   function setFieldState(inputEl, msgEl, isValid) {
     if (isValid) {
       inputEl?.setAttribute('aria-invalid', 'false');
       msgEl.style.display = 'none';
-      if (inputEl) inputEl.style.borderColor = 'var(--border)';
+      setBorder(inputEl, true);
     } else {
       inputEl?.setAttribute('aria-invalid', 'true');
       msgEl.style.display = 'block';
-      if (inputEl) inputEl.style.borderColor = 'var(--error)';
+      setBorder(inputEl, false);
     }
   }
 
@@ -231,33 +235,62 @@
   function validateExtras(){
     let ok = true;
 
+    // METABET: ID obligatorio, link opcional (si hay, debe ser válido)
     if (hasMetabet.checked) {
-      const okM = metabetId.value.trim().length > 0 && isValidUrl(metabetLink.value);
-      setFieldState(metabetId, metabetMsg, okM);
-      setFieldState(metabetLink, metabetMsg, okM);
-      if (!okM) metabetMsg.style.display = 'block';
-      ok = ok && okM;
+      const idOk = metabetId.value.trim().length > 0;
+      const linkVal = metabetLink.value.trim();
+      const linkOk = (linkVal === '' || isValidUrl(linkVal));
+
+      // Mostrar error SOLO si el ID falta o el link está presente pero es inválido
+      const groupOk = idOk && linkOk;
+      if (!groupOk) {
+        metabetMsg.style.display = 'block';
+      } else {
+        metabetMsg.style.display = 'none';
+      }
+
+      // Bordes: ID se marca rojo si falta; link solo si está y es inválido
+      setBorder(metabetId, idOk);
+      setBorder(metabetLink, linkOk);
+
+      ok = ok && groupOk;
     } else {
       metabetMsg.style.display = 'none';
+      setBorder(metabetId, true);
+      setBorder(metabetLink, true);
     }
 
+    // APUESTON: ID obligatorio, link opcional (si hay, debe ser válido)
     if (hasApueston.checked) {
-      const okA = apuestonId.value.trim().length > 0 && isValidUrl(apuestonLink.value);
-      setFieldState(apuestonId, apuestonMsg, okA);
-      setFieldState(apuestonLink, apuestonMsg, okA);
-      if (!okA) apuestonMsg.style.display = 'block';
-      ok = ok && okA;
+      const idOk = apuestonId.value.trim().length > 0;
+      const linkVal = apuestonLink.value.trim();
+      const linkOk = (linkVal === '' || isValidUrl(linkVal));
+
+      const groupOk = idOk && linkOk;
+      if (!groupOk) {
+        apuestonMsg.style.display = 'block';
+      } else {
+        apuestonMsg.style.display = 'none';
+      }
+
+      setBorder(apuestonId, idOk);
+      setBorder(apuestonLink, linkOk);
+
+      ok = ok && groupOk;
     } else {
       apuestonMsg.style.display = 'none';
+      setBorder(apuestonId, true);
+      setBorder(apuestonLink, true);
     }
 
+    // PPP: ID numérico obligatorio si marcado
     if (hasPPP.checked) {
-      const okP = isPositiveInt(pppId.value);
-      setFieldState(pppId, pppMsg, okP);
-      if (!okP) pppMsg.style.display = 'block';
-      ok = ok && okP;
+      const pOk = isPositiveInt(pppId.value);
+      setFieldState(pppId, pppMsg, pOk);
+      ok = ok && pOk;
     } else {
       pppMsg.style.display = 'none';
+      setBorder(pppId, true);
     }
 
     return ok;
@@ -298,6 +331,7 @@
   toggle(metabetFields, false);
   toggle(apuestonFields, false);
   toggle(pppFields, false);
+  validateAll();
 
   // Modal
   const openModal = (txt) => {
@@ -323,11 +357,13 @@
     ];
 
     if (hasMetabet.checked) {
-      lines.push(`Metabet: Sí (ID=${metabetId.value.trim()}, Link=${metabetLink.value.trim()})`);
+      const link = metabetLink.value.trim();
+      lines.push(`Metabet: Sí (ID=${metabetId.value.trim()}, Link=${link || '(sin link)'})`);
     } else { lines.push(`Metabet: No`); }
 
     if (hasApueston.checked) {
-      lines.push(`Apueston: Sí (ID=${apuestonId.value.trim()}, Link=${apuestonLink.value.trim()})`);
+      const link = apuestonLink.value.trim();
+      lines.push(`Apueston: Sí (ID=${apuestonId.value.trim()}, Link=${link || '(sin link)'})`);
     } else { lines.push(`Apueston: No`); }
 
     if (hasPPP.checked) {
@@ -348,12 +384,12 @@
         metabet: hasMetabet.checked ? {
           tiene: true,
           id: metabetId.value.trim(),
-          link: metabetLink.value.trim()
+          link: metabetLink.value.trim() || null
         } : { tiene: false },
         apueston: hasApueston.checked ? {
           tiene: true,
           id: apuestonId.value.trim(),
-          link: apuestonLink.value.trim()
+          link: apuestonLink.value.trim() || null
         } : { tiene: false },
         idppp: hasPPP.checked ? {
           tiene: true,
