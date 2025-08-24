@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ligar cuentas a username</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --hover:#3b7dc4; --error:#d84a4a;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
+  .container{width:100%;max-width:520px;background:var(--card);padding:28px 22px;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+  h2{margin:0 0 16px;text-align:center;color:var(--primary)}
+  .small{font-size:12px;color:#666;margin-top:6px}
+  .section-title{font-weight:700;margin:18px 0 10px;color:#444}
+  .stack{display:grid;gap:10px}
+  .row{display:flex;gap:10px;align-items:center}
+  .row input{flex:1;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fdfdfd}
+  .row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+  .btn{width:100%;background:var(--primary);color:#fff;border:0;padding:12px;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;transition:background-color .25s ease}
+  .btn:hover{background:var(--hover)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .error{font-size:12px;color:var(--error);margin-top:6px;display:none}
+  .divider{height:1px;background:#e6edf5;margin:16px 0}
+
+  /* Username más grande y en negrita cuando tiene texto */
+  #username{
+    padding:14px 14px;
+    font-size:18px;
+    border-width:2px;
+  }
+  /* Se pone bold al escribir (cuando NO muestra placeholder) */
+  #username:not(:placeholder-shown){
+    font-weight:700;
+  }
+
+  /* details/summary (acordeón nativo) */
+  details{border:1px solid var(--border);border-radius:12px;background:#fff;margin:10px 0; overflow:hidden}
+  summary{
+    list-style:none; cursor:pointer; user-select:none;
+    padding:12px 14px; display:flex; align-items:center; gap:8px;
+    font-weight:700; color:#2c5fb8;
+    background:#f9fbff;
+  }
+  summary::-webkit-details-marker { display:none; }
+  .chev{transition:transform .2s ease}
+  details[open] .chev{transform:rotate(90deg)}
+  .panel{padding:0 14px 14px}
+
+  .tag{display:inline-flex;align-items:center;gap:8px}
+  .opt{font-size:12px;color:#666;margin-left:auto}
+
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);z-index:10;align-items:center;justify-content:center}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;width:min(92%,440px);padding:22px 18px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .modal h3{margin:0;color:var(--primary)}
+  .modal p{white-space:pre-line;margin:14px 0;color:#333}
+  .button-group{display:flex;gap:12px}
+  .button-group button{flex:1;border:0;padding:10px;font-weight:600;border-radius:10px;cursor:pointer}
+  .button-group button:first-child{background:var(--primary);color:#fff}
+  .button-group button:last-child{background:#e0e6ed;color:#333}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>Ligar cuentas a username</h2>
+
+    <!-- Username global -->
+    <div class="section">
+      <div class="section-title">Username de Telegram</div>
+      <div class="stack">
+        <input id="username" type="text" placeholder="username (sin @)" autocomplete="off" inputmode="latin" />
+        <div id="errUser" class="error">Username inválido (5–32: letras, números o _), sin @.</div>
+        <div class="small">Se usará para Apueston, Metabet y PPP.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Acordeón: Apueston (colapsado por defecto) -->
+    <details id="secApueston">
+      <summary><span class="chev">▶</span><span class="tag">Apueston</span><span class="opt">(link opcional)</span></summary>
+      <div class="panel">
+        <div class="stack">
+          <div class="row">
+            <input id="apId" type="text" placeholder="ID de Apueston (solo números)" inputmode="numeric" pattern="[0-9]*" />
+          </div>
+          <div class="row">
+            <input id="apLink" type="url" placeholder="Link de Apueston (https://... — opcional)" />
+          </div>
+          <div id="errApueston" class="error">ID debe ser numérico; si escribes link, debe ser URL válida.</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Acordeón: Metabet (colapsado por defecto) -->
+    <details id="secMetabet">
+      <summary><span class="chev">▶</span><span class="tag">Metabet</span><span class="opt">(link opcional)</span></summary>
+      <div class="panel">
+        <div class="stack">
+          <div class="row">
+            <input id="mbId" type="text" placeholder="ID de Metabet (alfanumérico)" />
+          </div>
+          <div class="row">
+            <input id="mbLink" type="url" placeholder="Link de Metabet (https://... — opcional)" />
+          </div>
+          <div id="errMetabet" class="error">ID debe ser alfanumérico; si escribes link, debe ser URL válida.</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Acordeón: PPP (colapsado por defecto) -->
+    <details id="secPPP">
+      <summary><span class="chev">▶</span><span class="tag">PPP</span></summary>
+      <div class="panel">
+        <div class="stack">
+          <div class="row">
+            <input id="pppId" type="text" placeholder="ID de PPP (solo números)" inputmode="numeric" pattern="[0-9]*" />
+          </div>
+          <div id="errPPP" class="error">ID de PPP debe ser numérico.</div>
+        </div>
+      </div>
+    </details>
+
+    <div class="divider"></div>
+
+    <!-- ÚNICO BOTÓN -->
+    <button id="btnConfirm" class="btn" disabled>Confirmar</button>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Confirmar ligación</h3>
+      <p id="summaryText"></p>
+      <div class="button-group">
+        <button id="confirmYes">Sí</button>
+        <button id="confirmNo">No</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Telegram WebApp init
+  const tg = window.Telegram?.WebApp; if (tg){ tg.ready(); tg.expand(); }
+
+  // Elements
+  const $ = s => document.querySelector(s);
+  const username   = $('#username');
+  const errUser    = $('#errUser');
+
+  const apId       = $('#apId');
+  const apLink     = $('#apLink');
+  const errApu     = $('#errApueston');
+
+  const mbId       = $('#mbId');
+  const mbLink     = $('#mbLink');
+  const errMeta    = $('#errMetabet');
+
+  const pppId      = $('#pppId');
+  const errPPP     = $('#errPPP');
+
+  const btnConfirm = $('#btnConfirm');
+
+  const modal      = $('#modalOverlay');
+  const summary    = $('#summaryText');
+  const confirmYes = $('#confirmYes');
+  const confirmNo  = $('#confirmNo');
+
+  // Helpers
+  const sanitizeUsername = v => v.trim().replace(/^@+/, '');
+  const isValidUsername  = v => /^[A-Za-z0-9_]{5,32}$/.test(sanitizeUsername(v));
+  const isNumericId      = v => /^[0-9]+$/.test(String(v).trim());
+  const isAlnum          = v => /^[A-Za-z0-9]+$/.test(String(v).trim());
+  function isValidOptionalUrl(u){
+    try{
+      const t = u.trim();
+      if(!t) return true; // opcional
+      const url = new URL(t);
+      return /^https?:$/.test(url.protocol);
+    }catch{ return false; }
+  }
+
+  // Valida plataforma SOLO si tiene ID (link es opcional)
+  function isApuestonValid(){
+    const idOk = apId.value.trim().length>0 && isNumericId(apId.value);
+    const linkOk = isValidOptionalUrl(apLink.value);
+    return idOk && linkOk;
+  }
+  function isMetabetValid(){
+    const idOk = mbId.value.trim().length>0 && isAlnum(mbId.value);
+    const linkOk = isValidOptionalUrl(mbLink.value);
+    return idOk && linkOk;
+  }
+  function isPPPValid(){
+    return pppId.value.trim().length>0 && isNumericId(pppId.value);
+  }
+
+  // Botón activo si username válido y al menos UNA plataforma válida
+  function canConfirm(){
+    const u = sanitizeUsername(username.value);
+    const anyPlatform = isApuestonValid() || isMetabetValid() || isPPPValid();
+    return isValidUsername(u) && anyPlatform;
+  }
+
+  function updateButton(){
+    btnConfirm.disabled = !canConfirm();
+  }
+
+  // Mensaje de confirmación – solo incluye plataformas provistas válidas
+  function buildSummary(){
+    const u = sanitizeUsername(username.value);
+    const lines = [];
+    lines.push('Se ligarán las cuentas al username de Telegram:\n');
+    lines.push(`Username: ${u}\n`);
+
+    if(isApuestonValid()){
+      lines.push('Apueston:');
+      lines.push(`  - ID: ${apId.value.trim()}`);
+      lines.push(`  - Link: ${apLink.value.trim() || '(sin link)'}\n`);
+    }
+    if(isMetabetValid()){
+      lines.push('Metabet:');
+      lines.push(`  - ID: ${mbId.value.trim()}`);
+      lines.push(`  - Link: ${mbLink.value.trim() || '(sin link)'}\n`);
+    }
+    if(isPPPValid()){
+      lines.push('PPP:');
+      lines.push(`  - ID: ${pppId.value.trim()}\n`);
+    }
+    lines.push('¿Confirmas?');
+    return lines.join('\n');
+  }
+
+  function openConfirm(){
+    summary.textContent = buildSummary();
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+  }
+
+  function closeConfirm(){
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden','true');
+  }
+
+  // Live validation + limpiar errores visibles al escribir
+  [username, apId, apLink, mbId, mbLink, pppId].forEach(el=>{
+    el.addEventListener('input', ()=>{
+      errUser.style.display = 'none';
+      errApu.style.display  = 'none';
+      errMeta.style.display = 'none';
+      errPPP.style.display  = 'none';
+      updateButton();
+    });
+  });
+
+  // Confirm (único botón)
+  btnConfirm.addEventListener('click', ()=>{
+    const u = sanitizeUsername(username.value);
+    let ok = true;
+
+    if(!isValidUsername(u)){ errUser.style.display='block'; ok=false; }
+    // Mostrar errores SOLO si esa plataforma tiene algo escrito (evita avisos innecesarios)
+    if(apId.value.trim() || apLink.value.trim()){
+      if(!isApuestonValid()){ errApu.style.display='block'; ok=false; }
+    }
+    if(mbId.value.trim() || mbLink.value.trim()){
+      if(!isMetabetValid()){ errMeta.style.display='block'; ok=false; }
+    }
+    if(pppId.value.trim()){
+      if(!isPPPValid()){ errPPP.style.display='block'; ok=false; }
+    }
+    // Requiere al menos una plataforma válida
+    if(!(isApuestonValid() || isMetabetValid() || isPPPValid())) ok = false;
+
+    if(!ok) return;
+    openConfirm();
+  });
+
+  // Modal actions
+  confirmNo.addEventListener('click', closeConfirm);
+  confirmYes.addEventListener('click', ()=>{
+    const payload = {
+      tipo: 'ligar_cuentas_multiples',
+      username: sanitizeUsername(username.value),
+      // Solo incluir objetos de plataformas provistas válidas
+      ...(isApuestonValid() ? { apueston: {
+        id: apId.value.trim(),
+        link: apLink.value.trim() || null
+      }} : {}),
+      ...(isMetabetValid() ? { metabet: {
+        id: mbId.value.trim(),
+        link: mbLink.value.trim() || null
+      }} : {}),
+      ...(isPPPValid() ? { ppp: {
+        id: pppId.value.trim()
+      }} : {})
+    };
+
+    if (window.Telegram?.WebApp?.sendData) {
+      window.Telegram.WebApp.sendData(JSON.stringify(payload));
+    } else {
+      alert('Payload:\n' + JSON.stringify(payload, null, 2));
+    }
+
+    closeConfirm();
+  });
+
+  // Escape cierra modal
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeConfirm(); });
+
+  // Estado inicial
+  updateButton();
+</script>
+</body>
+</html>
