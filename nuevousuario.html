@@ -19,12 +19,21 @@
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .stack{display:grid;gap:10px}
   .row{display:flex;gap:10px;align-items:center}
-  .row input{flex:1;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fdfdfd}
-  .row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+  .row input[type="text"]{flex:1;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fdfdfd}
+  .row input[type="text"]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
   .small{font-size:12px;color:#666;margin-top:6px}
   .error{font-size:12px;color:var(--error);margin-top:6px;display:none}
   .divider{height:1px;background:#e6edf5;margin:14px 0}
-  .selected{outline:2px solid var(--primary); outline-offset:2px}
+
+  /* Checks list */
+  .checks{display:grid;gap:8px}
+  .check{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fdfdfd;
+  }
+  .check input{width:18px;height:18px}
+  .check label{flex:1;cursor:pointer}
+
   /* Modal */
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);z-index:10;align-items:center;justify-content:center}
   .modal-overlay.show{display:flex}
@@ -35,60 +44,50 @@
   .button-group button{flex:1;border:0;padding:10px;font-weight:600;border-radius:10px;cursor:pointer}
   .button-group button:first-child{background:var(--primary);color:#fff}
   .button-group button:last-child{background:#e0e6ed;color:#333}
-   .row{
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-  .row input{
-    flex:1; /* toma el espacio disponible */
-    padding:11px 12px;
-    border:1px solid var(--border);
-    border-radius:10px;
-    font-size:15px;
-    background:#fdfdfd;
-  }
-  .row input:focus{
-    outline:none;
-    border-color:var(--primary);
-    box-shadow:0 0 0 3px rgba(74,144,226,.15);
-  }
-  .row .btn{
-    flex:0 0 120px; /* ancho fijo para el botón */
-    padding:10px;   /* más compacto */
-    font-size:14px; /* texto un poco más pequeño */
-  }
 </style>
 </head>
 <body>
   <div class="container">
     <h2>Crear nueva cuenta</h2>
 
+    <!-- Acción rápida (checks) -->
     <div class="section">
       <div class="section-title">Acción rápida</div>
-      <div class="stack">
-        <button id="btnApuestonQuick" class="btn">Nuevo Apueston</button>
-        <button id="btnMetabetQuick" class="btn">Nuevo Metabet</button>
+      <div class="checks" role="group" aria-label="Crear usuario rápido">
+        <div class="check">
+          <input type="checkbox" id="quickApueston" />
+          <label for="quickApueston">Nuevo Apueston</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="quickMetabet" />
+          <label for="quickMetabet">Nuevo Metabet</label>
+        </div>
       </div>
+      <div class="small">Marca si quieres crear nuevas cuentas rápidamente (sin ligar username).</div>
     </div>
 
     <div class="divider"></div>
 
+    <!-- Crear y ligar a un username (un input + 2 checks) -->
     <div class="section">
       <div class="section-title">Crear y ligar a un username</div>
       <div class="row">
-        <input id="userApueston" type="text" placeholder="username (sin @)" />
-        <button id="btnApuestonLink" class="btn">Apueston</button>
+        <input id="username" type="text" placeholder="username (sin @)" />
       </div>
-      <div id="msgApueston" class="error">Username inválido (5–32: letras, números o _), sin @.</div>
+      <div id="msgUsername" class="error">Username inválido (5–32: letras, números o _), sin @.</div>
 
-      <div class="row" style="margin-top:10px">
-        <input id="userMetabet" type="text" placeholder="username (sin @)" />
-        <button id="btnMetabetLink" class="btn">Metabet</button>
+      <div class="checks" style="margin-top:10px" role="group" aria-label="Ligar a plataformas">
+        <div class="check">
+          <input type="checkbox" id="linkApueston" />
+          <label for="linkApueston">Ligar a Apueston</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="linkMetabet" />
+          <label for="linkMetabet">Ligar a Metabet</label>
+        </div>
       </div>
-      <div id="msgMetabet" class="error">Username inválido (5–32: letras, números o _), sin @.</div>
 
-      <div class="small">Si usas estos botones, se creará un nuevo usuario y se ligará a ese username de Telegram.</div>
+      <div class="small">Si marcas alguna plataforma para ligar, se creará una cuenta y se asociará al username indicado.</div>
     </div>
 
     <div style="margin-top:16px">
@@ -113,36 +112,53 @@
 
   // Elements
   const $ = s => document.querySelector(s);
-  const btnApuestonQuick = $('#btnApuestonQuick');
-  const btnMetabetQuick  = $('#btnMetabetQuick');
-  const userApueston     = $('#userApueston');
-  const userMetabet      = $('#userMetabet');
-  const btnApuestonLink  = $('#btnApuestonLink');
-  const btnMetabetLink   = $('#btnMetabetLink');
-  const msgApueston      = $('#msgApueston');
-  const msgMetabet       = $('#msgMetabet');
-  const btnConfirm       = $('#btnConfirm');
+  const quickApueston = $('#quickApueston');
+  const quickMetabet  = $('#quickMetabet');
+  const linkApueston  = $('#linkApueston');
+  const linkMetabet   = $('#linkMetabet');
+  const usernameInp   = $('#username');
+  const msgUsername   = $('#msgUsername');
+  const btnConfirm    = $('#btnConfirm');
 
-  const modalOverlay = $('#modalOverlay');
-  const summaryText  = $('#summaryText');
-  const confirmYes   = $('#confirmYes');
-  const confirmNo    = $('#confirmNo');
-
-  // State
-  let selection = null; // { action: 'quick'|'link', platform: 'apueston'|'metabet', username?: string }
+  const modalOverlay  = $('#modalOverlay');
+  const summaryText   = $('#summaryText');
+  const confirmYes    = $('#confirmYes');
+  const confirmNo     = $('#confirmNo');
 
   // Helpers
   const sanitizeUsername = v => v.trim().replace(/^@+/, '');
   const isValidUsername  = v => /^[A-Za-z0-9_]{5,32}$/.test(sanitizeUsername(v));
 
-  function clearSelectionStyles(){
-    [btnApuestonQuick, btnMetabetQuick, btnApuestonLink, btnMetabetLink].forEach(b=>b.classList.remove('selected'));
+  function anySelection(){
+    return quickApueston.checked || quickMetabet.checked || linkApueston.checked || linkMetabet.checked;
   }
+
+  function needsUsername(){
+    return linkApueston.checked || linkMetabet.checked;
+  }
+
   function updateConfirmState(){
-    btnConfirm.disabled = !selection || (selection.action==='link' && !selection.username);
+    const hasAny = anySelection();
+    const u = sanitizeUsername(usernameInp.value);
+    const validU = !needsUsername() || isValidUsername(u);
+    btnConfirm.disabled = !(hasAny && validU);
+    // Mostrar/ocultar error en vivo
+    if (needsUsername()){
+      msgUsername.style.display = isValidUsername(u) ? 'none' : 'block';
+    } else {
+      msgUsername.style.display = 'none';
+    }
   }
-  function openModal(summary){
-    summaryText.textContent = summary;
+
+  // Events to recalc state
+  [quickApueston, quickMetabet, linkApueston, linkMetabet].forEach(chk => {
+    chk.addEventListener('change', updateConfirmState);
+  });
+  usernameInp.addEventListener('input', updateConfirmState);
+
+  // Modal helpers
+  function openModal(text){
+    summaryText.textContent = text;
     modalOverlay.classList.add('show');
     modalOverlay.setAttribute('aria-hidden', 'false');
   }
@@ -151,77 +167,57 @@
     modalOverlay.setAttribute('aria-hidden', 'true');
   }
 
-  // Quick actions
-  btnApuestonQuick.addEventListener('click', ()=>{
-    clearSelectionStyles();
-    btnApuestonQuick.classList.add('selected');
-    selection = { action:'quick', platform:'apueston' };
-    updateConfirmState();
-  });
-  btnMetabetQuick.addEventListener('click', ()=>{
-    clearSelectionStyles();
-    btnMetabetQuick.classList.add('selected');
-    selection = { action:'quick', platform:'metabet' };
-    updateConfirmState();
-  });
+  // Build summary text
+  function buildSummary(){
+    const u = sanitizeUsername(usernameInp.value);
+    const lines = [];
 
-  // Link actions (with username)
-  btnApuestonLink.addEventListener('click', ()=>{
-    const u = sanitizeUsername(userApueston.value);
-    if(!isValidUsername(u)){
-      msgApueston.style.display = 'block';
-      return;
+    lines.push('Se realizará lo siguiente:\n');
+
+    // Acción rápida
+    if (quickApueston.checked || quickMetabet.checked){
+      lines.push('• Crear nueva(s) cuenta(s) (acción rápida):');
+      if (quickApueston.checked) lines.push('   - Apueston');
+      if (quickMetabet.checked)  lines.push('   - Metabet');
+      lines.push('');
     }
-    msgApueston.style.display = 'none';
-    clearSelectionStyles();
-    btnApuestonLink.classList.add('selected');
-    selection = { action:'link', platform:'apueston', username:u };
-    updateConfirmState();
-  });
 
-  btnMetabetLink.addEventListener('click', ()=>{
-    const u = sanitizeUsername(userMetabet.value);
-    if(!isValidUsername(u)){
-      msgMetabet.style.display = 'block';
-      return;
+    // Ligar con username
+    if (linkApueston.checked || linkMetabet.checked){
+      lines.push('• Crear y ligar cuenta(s) al username:');
+      lines.push(`   - Username: ${u}`);
+      if (linkApueston.checked) lines.push('   - Ligar en Apueston');
+      if (linkMetabet.checked)  lines.push('   - Ligar en Metabet');
+      lines.push('');
     }
-    msgMetabet.style.display = 'none';
-    clearSelectionStyles();
-    btnMetabetLink.classList.add('selected');
-    selection = { action:'link', platform:'metabet', username:u };
-    updateConfirmState();
-  });
 
-  // Enable live validation error hide
-  [userApueston, userMetabet].forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      if(inp===userApueston) msgApueston.style.display='none';
-      if(inp===userMetabet)  msgMetabet.style.display='none';
-    });
-  });
+    return lines.join('\n');
+  }
 
   // Confirm button -> show summary
   btnConfirm.addEventListener('click', ()=>{
-    if(!selection) return;
+    if (btnConfirm.disabled) return;
+    if (needsUsername() && !isValidUsername(sanitizeUsername(usernameInp.value))) return;
 
-    if(selection.action==='quick'){
-      openModal(`Se creará una nueva cuenta:\nPlataforma: ${selection.platform}\n¿Confirmas?`);
-    } else {
-      openModal(`Se creará una nueva cuenta y se ligará al username:\nPlataforma: ${selection.platform}\nUsername: ${selection.username}\n¿Confirmas?`);
-    }
+    const summary = buildSummary();
+    openModal(summary);
   });
 
   // Modal actions
   confirmNo.addEventListener('click', closeModal);
 
   confirmYes.addEventListener('click', ()=>{
-    if(!selection) return;
-
     const payload = {
       tipo: 'crear_cuenta',
-      plataforma: selection.platform,
-      ligar_username: selection.action === 'link',
-      username: selection.action === 'link' ? selection.username : null
+      username: needsUsername() ? sanitizeUsername(usernameInp.value) : null,
+      apueston: {
+        quick: !!quickApueston.checked,
+        link:  !!linkApueston.checked
+      },
+      metabet: {
+        quick: !!quickMetabet.checked,
+        link:  !!linkMetabet.checked
+      }
     };
 
     if (tg?.sendData) {
@@ -229,12 +225,14 @@
     } else {
       alert('Payload:\n' + JSON.stringify(payload, null, 2));
     }
-
     closeModal();
   });
 
-  // Escape to close
+  // Escape to close modal
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); });
+
+  // Initial state
+  updateConfirmState();
 </script>
 </body>
 </html>
