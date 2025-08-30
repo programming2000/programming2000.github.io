@@ -193,7 +193,7 @@
 
   confirmYes.addEventListener('click', () => {
     const payload = {
-      tipo: 'registro_cliente_ref',
+      tipo: 'registroRef_cliente',
       nombre: nombre.value.trim(),
       username: sanitizeUsername(username.value),
       telefono: countryCode.value + onlyDigits(telefono.value)
