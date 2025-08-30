@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Listar Referidos</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body{
+    font-family:'Segoe UI',system-ui,Arial,sans-serif;
+    margin:0; min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    background:#f5f8fb;
+  }
+  .btn{
+    width:200px;
+    background:#4A90E2;
+    color:#fff;
+    border:0;
+    padding:14px;
+    font-size:16px;
+    font-weight:600;
+    border-radius:12px;
+    cursor:pointer;
+    transition:background-color .25s ease;
+  }
+  .btn:hover{background:#3b7dc4}
+</style>
+</head>
+<body>
+  <button id="btnListar" class="btn">Ver mis Referidos</button>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg){ tg.ready(); tg.expand(); }
+
+  const btnListar = document.getElementById('btnListar');
+
+  btnListar.addEventListener('click', ()=>{
+    const payload = { tipo: "listar_referidos" };
+
+    if (tg?.sendData) {
+      tg.sendData(JSON.stringify(payload));
+    } else {
+      alert("Payload:\n" + JSON.stringify(payload, null, 2));
+    }
+  });
+</script>
+</body>
+</html>
