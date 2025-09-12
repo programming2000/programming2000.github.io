@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Encuesta – MiniApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --hover:#3b7dc4; --error:#d84a4a;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    background:var(--bg); margin:0; min-height:100vh;
+    display:flex; align-items:flex-start; justify-content:center;
+  }
+  .container{
+    width:100%; max-width:720px; background:var(--card); padding:22px 18px 90px;
+    border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,.08);
+    text-align:left; margin:16px;
+  }
+  header h2{margin:0 0 6px; text-align:center; color:var(--primary)}
+  header .desc{margin:0 0 18px; text-align:center; color:#555}
+
+  .group{border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; background:#fdfdfd}
+  .group h3{margin:0 0 10px; color:#1f4a7a; font-size:16px}
+
+  .q{margin:10px 0 14px}
+  .q label.qtext{display:block; font-weight:600; color:var(--text); margin-bottom:8px}
+
+  input[type="text"], input[type="number"], textarea, select{
+    width:100%; padding:11px 12px; border:1px solid var(--border);
+    border-radius:10px; font-size:15px; background:#fff
+  }
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+
+  .options{display:flex; gap:10px; flex-wrap:wrap}
+  .choice{
+    display:flex; align-items:center; gap:8px; border:1px solid var(--border); padding:8px 10px; border-radius:10px; cursor:pointer;
+  }
+  .choice input{accent-color:var(--primary)}
+
+  .req{font-size:11px; color:#999; margin-left:6px}
+  .error{font-size:12px; color:var(--error); margin-top:6px; display:none}
+
+  .sticky-actions{
+    position:fixed; left:0; right:0; bottom:0; background:rgba(245,248,251,.9);
+    border-top:1px solid var(--border); padding:12px 16px; display:flex; justify-content:center; backdrop-filter:blur(6px);
+  }
+  .sticky-actions .inner{width:100%; max-width:720px; display:flex; gap:10px}
+  button{
+    flex:1; background:var(--primary); color:#fff; border:0;
+    padding:12px; font-size:16px; font-weight:600; border-radius:10px;
+    cursor:pointer; transition:background-color .25s ease;
+  }
+  button:hover{background:var(--hover)}
+  button:disabled{opacity:.6; cursor:not-allowed}
+  .btn-secondary{background:#e0e6ed; color:#333}
+
+  /* Modal */
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(3px); z-index:10; align-items:center; justify-content:center}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff; width:min(92%,540px); padding:22px 18px; border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .modal h3{margin:0; color:var(--primary)}
+  .modal pre{white-space:pre-wrap; background:#f7f9fc; border:1px solid var(--border); padding:10px; border-radius:10px; max-height:40vh; overflow:auto}
+  .button-group{display:flex; gap:12px; margin-top:12px}
+  .button-group button{flex:1}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h2 id="title">Encuesta</h2>
+      <p id="subtitle" class="desc"></p>
+    </header>
+
+    <div id="formRoot" aria-live="polite"></div>
+  </div>
+
+  <div class="sticky-actions">
+    <div class="inner">
+      <button id="submitBtn" type="button">Enviar</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Confirmar envío</h3>
+      <pre id="summaryText"></pre>
+      <div class="button-group">
+        <button id="confirmYes">Confirmar</button>
+        <button id="confirmEdit" class="btn-secondary">Editar respuestas</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const tg = window.Telegram?.WebApp; if (tg){ tg.ready(); tg.expand(); }
+
+// === Datos de la encuesta ===
+const SURVEY = {
+  "data": {
+    "id": 1,
+    "nro": 1,
+    "descripcion": "Encuesta1",
+    "grupos": [
+      {"id":1,"texto":"TE GUSTA JUGAR?","orden":1,"preguntas":[
+        {"id":1,"texto":"POKER CASH","orden":1,"opciones":["Si","No"],"requerido":false},
+        {"id":2,"texto":"POKER TORNEO","orden":2,"opciones":["Si","No"],"requerido":false},
+        {"id":3,"texto":"APUESTA DEPORTIVA","orden":3,"opciones":["Si","No"],"requerido":false},
+        {"id":4,"texto":"CASINO","orden":4,"opciones":["Si","No"],"requerido":false},
+        {"id":5,"texto":"TU JUEGO FAVORITO","orden":5,"opciones":[],"requerido":false}
+      ]},
+      {"id":2,"texto":"QUE NIVELES JUEGAS?","orden":2,"preguntas":[
+        {"id":6,"texto":"POKER CASH NIVEL (0.5/1 - 1/2)","orden":1,"opciones":["Si","No"],"requerido":false},
+        {"id":7,"texto":"POKER CASH NIVEL (2/4 - 5/10)","orden":2,"opciones":["Si","No"],"requerido":false},
+        {"id":8,"texto":"TORNEO POKER BUY (10-50)","orden":3,"opciones":["Si","No"],"requerido":false},
+        {"id":9,"texto":"TORNEO POKER BUY (50-200)","orden":4,"opciones":["Si","No"],"requerido":false},
+        {"id":10,"texto":"OTROS","orden":5,"opciones":[],"requerido":false}
+      ]},
+      {"id":3,"texto":"EN QUE PLATAFORMA JUEGAS?","orden":3,"preguntas":[
+        {"id":11,"texto":"APUESTON","orden":1,"opciones":["Si","No"],"requerido":false},
+        {"id":12,"texto":"METABET","orden":2,"opciones":["Si","No"],"requerido":false},
+        {"id":13,"texto":"OTROS","orden":3,"opciones":[],"requerido":false},
+        {"id":14,"texto":"TE UNES A LA COMUNIDAD PARA PREMIOS Y SORTEOS","orden":4,"opciones":["Si","No"],"requerido":false}
+      ]},
+      {"id":4,"texto":"INFORMACIÓN DEL CLIENTE","orden":4,"preguntas":[
+        {"id":15,"texto":"PAIS","orden":1,"opciones":[],"requerido":false},
+        {"id":16,"texto":"CIUDAD","orden":2,"opciones":[],"requerido":false},
+        {"id":17,"texto":"EDAD","orden":3,"opciones":[],"requerido":false}
+      ]},
+      {"id":5,"texto":"REGISTRADOR","orden":5,"preguntas":[
+        {"id":18,"texto":"ES TU AMIGO?","orden":1,"opciones":["Si","No"],"requerido":false},
+        {"id":19,"texto":"COMENTARIO","orden":2,"opciones":[],"requerido":false}
+      ]}
+    ],
+    "activa": true
+  }
+};
+
+const $ = s => document.querySelector(s);
+const formRoot = $('#formRoot');
+const title = $('#title');
+const subtitle = $('#subtitle');
+const submitBtn = $('#submitBtn');
+const modalOverlay = $('#modalOverlay');
+const summaryText = $('#summaryText');
+const confirmYes = $('#confirmYes');
+const confirmEdit = $('#confirmEdit');
+
+function showError(el, msgEl, show){
+  if(!msgEl) return;
+  msgEl.style.display = show ? 'block' : 'none';
+  el?.setAttribute('aria-invalid', show ? 'true' : 'false');
+  el?.style && (el.style.borderColor = show ? 'var(--error)' : 'var(--border)');
+}
+
+function renderQuestion(q){
+  const wrap = document.createElement('div');
+  wrap.className = 'q';
+  wrap.dataset.qid = q.id;
+
+  const lbl = document.createElement('label');
+  lbl.className = 'qtext';
+  lbl.textContent = q.texto;
+  wrap.appendChild(lbl);
+
+  let inputEl;
+  if (Array.isArray(q.opciones) && q.opciones.length){
+    const opts = document.createElement('div');
+    opts.className = 'options';
+    q.opciones.forEach((op)=>{
+      const chip = document.createElement('label');
+      chip.className = 'choice';
+      const r = document.createElement('input');
+      r.type = 'radio';
+      r.name = `q_${q.id}`;
+      r.value = op;
+      const tx = document.createElement('span');
+      tx.textContent = op;
+      chip.appendChild(r); chip.appendChild(tx);
+      opts.appendChild(chip);
+    });
+    inputEl = opts;
+  } else {
+    const isEdad = /EDAD/i.test(q.texto);
+    const inp = document.createElement('input');
+    inp.type = isEdad ? 'number' : 'text';
+    if(isEdad){ inp.min = '1'; inp.max = '120'; inp.inputMode = 'numeric'; }
+    inp.placeholder = isEdad ? 'Ingresa tu edad' : 'Escribe tu respuesta';
+    inputEl = inp;
+  }
+  wrap.appendChild(inputEl);
+
+  if(q.requerido){
+    const req = document.createElement('span'); req.className = 'req'; req.textContent = '(obligatorio)';
+    lbl.appendChild(req);
+  }
+
+  const err = document.createElement('div'); err.className = 'error'; err.textContent = 'Campo obligatorio.';
+  wrap.appendChild(err);
+
+  return wrap;
+}
+
+function renderGroup(g){
+  const card = document.createElement('section');
+  card.className = 'group';
+  const h3 = document.createElement('h3');
+  h3.textContent = g.texto;
+  card.appendChild(h3);
+
+  const sortedQ = [...(g.preguntas||[])].sort((a,b)=> (a.orden||0)-(b.orden||0));
+  sortedQ.forEach(q=> card.appendChild(renderQuestion(q)));
+  return card;
+}
+
+function renderSurvey(s){
+  title.textContent = s.descripcion || 'Encuesta';
+  subtitle.textContent = s.activa ? 'Encuesta activa' : 'Encuesta inactiva';
+  formRoot.innerHTML = '';
+  const groups = [...(s.grupos||[])].sort((a,b)=> (a.orden||0)-(b.orden||0));
+  groups.forEach(g=> formRoot.appendChild(renderGroup(g)));
+}
+
+function getValueForQuestion(qWrap){
+  const radios = qWrap.querySelectorAll('input[type="radio"]');
+  if (radios.length){
+    const sel = [...radios].find(r=> r.checked);
+    return sel ? sel.value : '';
+  }
+  const input = qWrap.querySelector('input, textarea, select');
+  return input ? (input.value||'').trim() : '';
+}
+
+function validate(){
+  let ok = true;
+  const qWraps = formRoot.querySelectorAll('.q');
+  qWraps.forEach(w=>{
+    const qid = Number(w.dataset.qid);
+    const q = findQuestionById(qid);
+    const val = getValueForQuestion(w);
+    const err = w.querySelector('.error');
+    let good = true;
+
+    if (q?.requerido){
+      good = val !== '';
+    }
+
+    if (/EDAD/i.test(q?.texto||'')){
+      if (val !== ''){
+        const n = Number(val);
+        good = Number.isFinite(n) && n >= 1 && n <= 120;
+        if(!good && err) err.textContent = 'Ingresa una edad válida (1–120).';
+      }
+    }
+
+    showError(w.querySelector('input, textarea, select')||w, err, !good);
+    if(!good) ok = false;
+  });
+  return ok;
+}
+
+function collectPayload(){
+  const answers = [];
+  const qWraps = formRoot.querySelectorAll('.q');
+  qWraps.forEach(w=>{
+    const qid = Number(w.dataset.qid);
+    const q = findQuestionById(qid);
+    const val = getValueForQuestion(w);
+    answers.push({ id: qid, texto: q?.texto || '', valor: val });
+  });
+  return {
+    tipo: 'encuesta_ref',
+    encuestaId: SURVEY.data.id,
+    nro: SURVEY.data.nro,
+    descripcion: SURVEY.data.descripcion,
+    activa: SURVEY.data.activa,
+    respuestas: answers
+  };
+}
+
+function findQuestionById(id){
+  for(const g of SURVEY.data.grupos){
+    for(const q of g.preguntas){ if(q.id === id) return q; }
+  }
+  return null;
+}
+
+// Abrir modal desde Enviar
+submitBtn.addEventListener('click', ()=>{
+  if(!validate()) return;
+  const payload = collectPayload();
+  const lines = [];
+  lines.push(`Encuesta: ${payload.descripcion} (#${payload.nro})`);
+  payload.respuestas.forEach(r=>{
+    lines.push(`• ${r.texto}: ${r.valor || '(vacío)'}`);
+  });
+  summaryText.textContent = lines.join('\n');
+  modalOverlay.classList.add('show');
+  modalOverlay.setAttribute('aria-hidden','false');
+});
+
+// Confirmar envío
+confirmYes.addEventListener('click', ()=>{
+  const payload = collectPayload();
+  if(window.Telegram?.WebApp?.sendData){
+    window.Telegram.WebApp.sendData(JSON.stringify(payload));
+  }else{
+    alert('Payload\n' + JSON.stringify(payload, null, 2));
+  }
+  // cerrar modal tras enviar
+  modalOverlay.classList.remove('show');
+  modalOverlay.setAttribute('aria-hidden','true');
+});
+
+// Editar (volver al formulario)
+confirmEdit.addEventListener('click', ()=>{
+  modalOverlay.classList.remove('show');
+  modalOverlay.setAttribute('aria-hidden','true');
+});
+
+// Escape cierra modal
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ confirmEdit.click(); } });
+
+// Render inicial
+renderSurvey(SURVEY.data);
+</script>
+</body>
+</html>
