@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -99,42 +99,68 @@
 <script>
 const tg = window.Telegram?.WebApp; if (tg){ tg.ready(); tg.expand(); }
 
-// === Datos de la encuesta ===
+// === Datos de la encuesta (con GÉNERO) ===
 const SURVEY = {
   "data": {
     "id": 1,
     "nro": 1,
-    "descripcion": "Encuesta",
+    "descripcion": "Encuesta1",
     "grupos": [
-      {"id":1,"texto":"TE GUSTA JUGAR?","orden":1,"preguntas":[
-        {"id":1,"texto":"POKER CASH","orden":1,"opciones":["Si","No"],"requerido":false},
-        {"id":2,"texto":"POKER TORNEO","orden":2,"opciones":["Si","No"],"requerido":false},
-        {"id":3,"texto":"APUESTA DEPORTIVA","orden":3,"opciones":["Si","No"],"requerido":false},
-        {"id":4,"texto":"CASINO","orden":4,"opciones":["Si","No"],"requerido":false},
-        {"id":5,"texto":"TU JUEGO FAVORITO","orden":5,"opciones":[],"requerido":false}
-      ]},
-      {"id":2,"texto":"QUE NIVELES JUEGAS?","orden":2,"preguntas":[
-        {"id":6,"texto":"POKER CASH NIVEL (0.5/1 - 1/2)","orden":1,"opciones":["Si","No"],"requerido":false},
-        {"id":7,"texto":"POKER CASH NIVEL (2/4 - 5/10)","orden":2,"opciones":["Si","No"],"requerido":false},
-        {"id":8,"texto":"TORNEO POKER BUY (10-50)","orden":3,"opciones":["Si","No"],"requerido":false},
-        {"id":9,"texto":"TORNEO POKER BUY (50-200)","orden":4,"opciones":["Si","No"],"requerido":false},
-        {"id":10,"texto":"OTROS","orden":5,"opciones":[],"requerido":false}
-      ]},
-      {"id":3,"texto":"EN QUE PLATAFORMA JUEGAS?","orden":3,"preguntas":[
-        {"id":11,"texto":"APUESTON","orden":1,"opciones":["Si","No"],"requerido":false},
-        {"id":12,"texto":"METABET","orden":2,"opciones":["Si","No"],"requerido":false},
-        {"id":13,"texto":"OTROS","orden":3,"opciones":[],"requerido":false},
-        {"id":14,"texto":"TE UNES A LA COMUNIDAD PARA PREMIOS Y SORTEOS","orden":4,"opciones":["Si","No"],"requerido":false}
-      ]},
-      {"id":4,"texto":"CUENTANOS DE TI","orden":4,"preguntas":[
-        {"id":15,"texto":"PAIS","orden":1,"opciones":[],"requerido":false},
-        {"id":16,"texto":"CIUDAD","orden":2,"opciones":[],"requerido":false},
-        {"id":17,"texto":"EDAD","orden":3,"opciones":[],"requerido":false}
-      ]},
-      {"id":5,"texto":"QUIEN TE REGISTRO..","orden":5,"preguntas":[
-        {"id":18,"texto":"ES TU AMIGO?","orden":1,"opciones":["Si","No"],"requerido":false},
-        {"id":19,"texto":"COMENTARIO","orden":2,"opciones":[],"requerido":false}
-      ]}
+      {
+        "id": 1,
+        "texto": "TE GUSTA JUGAR?",
+        "orden": 1,
+        "preguntas": [
+          {"id": 1,  "texto": "POKER CASH",       "orden": 1, "opciones": ["Si","No"], "requerido": false},
+          {"id": 2,  "texto": "POKER TORNEO",     "orden": 2, "opciones": ["Si","No"], "requerido": false},
+          {"id": 3,  "texto": "APUESTA DEPORTIVA", "orden": 3, "opciones": ["Si","No"], "requerido": false},
+          {"id": 4,  "texto": "CASINO",            "orden": 4, "opciones": ["Si","No"], "requerido": false},
+          {"id": 5,  "texto": "TU JUEGO FAVORITO", "orden": 5, "opciones": [],        "requerido": false}
+        ]
+      },
+      {
+        "id": 2,
+        "texto": "QUE NIVELES JUEGAS?",
+        "orden": 2,
+        "preguntas": [
+          {"id": 6,  "texto": "POKER CASH NIVEL (0.5/1 - 1/2)", "orden": 1, "opciones": ["Si","No"], "requerido": false},
+          {"id": 7,  "texto": "POKER CASH NIVEL (2/4 - 5/10)",    "orden": 2, "opciones": ["Si","No"], "requerido": false},
+          {"id": 8,  "texto": "TORNEO POKER BUY (10-50)",          "orden": 3, "opciones": ["Si","No"], "requerido": false},
+          {"id": 9,  "texto": "TORNEO POKER BUY (50-200)",         "orden": 4, "opciones": ["Si","No"], "requerido": false},
+          {"id": 10, "texto": "OTROS",                              "orden": 5, "opciones": [],        "requerido": false}
+        ]
+      },
+      {
+        "id": 3,
+        "texto": "EN QUE PLATAFORMA JUEGAS?",
+        "orden": 2,
+        "preguntas": [
+          {"id": 11, "texto": "APUESTON", "orden": 1, "opciones": ["Si","No"], "requerido": false},
+          {"id": 12, "texto": "METABET",  "orden": 2, "opciones": ["Si","No"], "requerido": false},
+          {"id": 13, "texto": "OTROS",    "orden": 3, "opciones": [],        "requerido": false},
+          {"id": 14, "texto": "TE UNES A LA COMUNIDAD PARA PREMIOS Y SORTEOS", "orden": 4, "opciones": ["Si","No"], "requerido": false}
+        ]
+      },
+      {
+        "id": 4,
+        "texto": "INFORMACIÓN DEL CLIENTE",
+        "orden": 3,
+        "preguntas": [
+          {"id": 15, "texto": "PAIS",   "orden": 1, "opciones": [],                 "requerido": false},
+          {"id": 16, "texto": "CIUDAD", "orden": 2, "opciones": [],                 "requerido": false},
+          {"id": 17, "texto": "EDAD",   "orden": 3, "opciones": [],                 "requerido": false},
+          {"id": 18, "texto": "GENERO", "orden": 4, "opciones": ["Masculino","Femenino"], "requerido": false}
+        ]
+      },
+      {
+        "id": 5,
+        "texto": "REGISTRADOR",
+        "orden": 3,
+        "preguntas": [
+          {"id": 19, "texto": "ES TU AMIGO?", "orden": 1, "opciones": ["Si","No"], "requerido": false},
+          {"id": 20, "texto": "COMENTARIO",  "orden": 2, "opciones": [],        "requerido": true}
+        ]
+      }
     ],
     "activa": true
   }
@@ -295,9 +321,7 @@ submitBtn.addEventListener('click', ()=>{
   const payload = collectPayload();
   const lines = [];
   lines.push(`Encuesta: ${payload.descripcion} (#${payload.nro})`);
-  payload.respuestas.forEach(r=>{
-    lines.push(`• ${r.texto}: ${r.valor || '(vacío)'}`);
-  });
+  payload.respuestas.forEach(r=>{ lines.push(`• ${r.texto}: ${r.valor || '(vacío)'}`); });
   summaryText.textContent = lines.join('\n');
   modalOverlay.classList.add('show');
   modalOverlay.setAttribute('aria-hidden','false');
@@ -311,7 +335,6 @@ confirmYes.addEventListener('click', ()=>{
   }else{
     alert('Payload\n' + JSON.stringify(payload, null, 2));
   }
-  // cerrar modal tras enviar
   modalOverlay.classList.remove('show');
   modalOverlay.setAttribute('aria-hidden','true');
 });
