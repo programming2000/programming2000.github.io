@@ -55,7 +55,7 @@
     <div id="nombreGroup">
       <label id="lblNombre" for="nombre">Nombre del depositante</label>
       <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
-      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero para su actualizacion.</div>
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
     </div>
 
     <label for="monto">Monto</label>
@@ -74,13 +74,14 @@
       const q = new URLSearchParams(location.search);
       const min = q.get('montominimo');
       const max = q.get('montomaximo');
+      const maxCobro = q.get('maxcobro');
       const usuario = q.get('usuario') ?? '';
       const recarga = q.get('recarga') ?? '';
       const cobro = q.get('cobro') ?? '';
       const nombre = q.get('nombre') ?? '';
       const plataforma = q.get('plataforma') ?? '';
       const banksecurity = q.get('banksecurity') ?? 'false';
-      return { minRaw:min, maxRaw:max, usuario, recarga, cobro, nombre, plataforma, banksecurity };
+      return { minRaw:min, maxRaw:max, maxCobroRaw:maxCobro, usuario, recarga, cobro, nombre, plataforma, banksecurity };
     }
 
     function parseBool(v){
@@ -98,12 +99,19 @@
     const state = {
       min: NaN,
       max: NaN,
+      maxCobro: NaN,
       modo: 'recarga', // 'recarga' | 'cobro'
       titles: { recarga: 'Recarga', cobro: 'Cobro' },
       plataforma: '',
       usuarioInicial: '',
       banksecurity: false
     };
+
+    function currentMax(){
+      // Si estamos en cobro y hay maxCobro válido, úsalo; de lo contrario usa max general
+      if(state.modo === 'cobro' && !Number.isNaN(state.maxCobro)) return state.maxCobro;
+      return state.max;
+    }
 
     function updateTitle(){
       const titulo = state.modo === 'recarga' ? state.titles.recarga : state.titles.cobro;
@@ -118,11 +126,13 @@
     function updateNombreVisibility(){
       const group = $('nombreGroup');
       const shouldShow = state.banksecurity ? true : (state.modo === 'cobro');
-      if(shouldShow){
-        group.classList.remove('hidden');
-      } else {
-        group.classList.add('hidden');
-      }
+      if(shouldShow){ group.classList.remove('hidden'); } else { group.classList.add('hidden'); }
+    }
+
+    function updateRangeLabels(){
+      if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min; else $('minLabel').textContent = '—';
+      const mx = currentMax();
+      if(!Number.isNaN(mx)) $('maxLabel').textContent = mx; else $('maxLabel').textContent = '—';
     }
 
     function toggleUsuarioEditable(){
@@ -138,7 +148,8 @@
       const m = parseIntAmount($('monto').value);
       let ok = true;
 
-      if(Number.isNaN(m) || m < state.min || m > state.max){ ok = false; }
+      const mx = currentMax();
+      if(Number.isNaN(m) || m < state.min || (!Number.isNaN(mx) && m > mx)) { ok = false; }
 
       const user = $('usuario').value.trim();
       const regex = /^[A-Z0-9]+$/;
@@ -179,17 +190,16 @@
     }
 
     (function init(){
-      const { minRaw, maxRaw, usuario, recarga, cobro, nombre, plataforma, banksecurity } = getParams();
+      const { minRaw, maxRaw, maxCobroRaw, usuario, recarga, cobro, nombre, plataforma, banksecurity } = getParams();
       state.min = parseIntAmount(minRaw);
       state.max = parseIntAmount(maxRaw);
+      state.maxCobro = parseIntAmount(maxCobroRaw);
       state.titles.recarga = (recarga && recarga.trim()) ? recarga.trim() : 'Recarga';
       state.titles.cobro   = (cobro && cobro.trim()) ? cobro.trim() : 'Cobro';
       state.plataforma     = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
       state.banksecurity   = parseBool(banksecurity);
 
-      if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min;
-      if(!Number.isNaN(state.max)) $('maxLabel').textContent = state.max;
-
+      // Usuario inicial desde la URL en MAYÚSCULAS
       if(usuario && usuario.trim() !== ''){
         state.usuarioInicial = usuario.trim().toUpperCase();
         $('usuario').value = state.usuarioInicial;
@@ -200,6 +210,7 @@
       updateTitle();
       updateNombreLabel();
       updateNombreVisibility();
+      updateRangeLabels();
       toggleUsuarioEditable();
 
       $('modo').addEventListener('change', e => {
@@ -207,6 +218,7 @@
         updateTitle();
         updateNombreLabel();
         updateNombreVisibility();
+        updateRangeLabels();
         toggleUsuarioEditable();
         validate();
       });
