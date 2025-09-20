@@ -103,6 +103,14 @@
       $('lblNombre').textContent = label;
     }
 
+    function toggleUsuarioEditable(){
+      if(state.modo === 'cobro'){
+        $('usuario').setAttribute('readonly', true);
+      } else {
+        $('usuario').removeAttribute('readonly');
+      }
+    }
+
     function validate(){
       const m = parseIntAmount($('monto').value);
       let ok = true;
@@ -166,11 +174,13 @@
 
       updateTitle();
       updateNombreLabel();
+      toggleUsuarioEditable();
 
       $('modo').addEventListener('change', e => {
         state.modo = e.target.checked ? 'cobro' : 'recarga';
         updateTitle();
         updateNombreLabel();
+        toggleUsuarioEditable();
         validate();
       });
 
