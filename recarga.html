@@ -40,7 +40,7 @@
     <h2 id="titulo">Recarga</h2>
 
     <div id="toggleGroup" class="toggle" aria-label="Seleccionar tipo de operación">
-      <span>Recarga</span>
+      <span id="recargaLabel">Recarga</span>
       <label class="switch">
         <input id="modo" type="checkbox" aria-label="Alternar entre Recarga y Cobro" />
         <span class="slider"></span>
@@ -54,7 +54,7 @@
     <div id="nombreGroup">
       <label id="lblNombre" for="nombre">Nombre del depositante</label>
       <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
-      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero para actualizarlo.</div>
     </div>
 
     <label for="monto">Monto</label>
@@ -102,11 +102,20 @@
       maxCobro: NaN,
       modo: 'recarga',
       titles: { recarga: 'Recarga', cobro: 'Cobro' },
+      labels: { recarga: 'Recarga', cobro: 'Cobro' },
       plataforma: '',
       usuarioInicial: '',
       banksecurity: false,
       cobroEnabled: false
     };
+
+    function splitTitle(value){
+      if(!value) return { first: '', rest: '' };
+      const parts = value.trim().split(/\s+/);
+      const first = parts.shift();
+      const rest = parts.join(' ');
+      return { first, rest };
+    }
 
     function currentMax(){
       if(state.modo === 'cobro' && !Number.isNaN(state.maxCobro)) return state.maxCobro;
@@ -191,14 +200,22 @@
       state.min = parseIntAmount(minRaw);
       state.max = parseIntAmount(maxRaw);
       state.maxCobro = parseIntAmount(maxCobroRaw);
-      state.titles.recarga = (recarga && recarga.trim()) ? recarga.trim() : 'Recarga';
-      state.titles.cobro   = (cobroTitle && cobroTitle.trim()) ? cobroTitle.trim() : 'Cobro';
+
+      const recargaSplit = splitTitle(recarga);
+      const cobroSplit = splitTitle(cobroTitle);
+      state.labels.recarga = recargaSplit.first || 'Recarga';
+      state.labels.cobro   = cobroSplit.first || 'Cobro';
+      state.titles.recarga = recargaSplit.rest || 'Recarga';
+      state.titles.cobro   = cobroSplit.rest || 'Cobro';
+
+      $('recargaLabel').textContent = state.labels.recarga;
+      $('cobroLabel').textContent   = state.labels.cobro;
+
       state.plataforma     = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
       state.banksecurity   = parseBool(banksecurity);
       state.cobroEnabled   = parseBool(cobroEnabled);
 
       if(!state.cobroEnabled){
-        // Ocultar completamente la opción de cobro
         $('toggleGroup').remove();
         state.modo = 'recarga';
       }
