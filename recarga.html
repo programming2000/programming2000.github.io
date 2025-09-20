@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniApp • Usuario y Monto</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --error:#d84a4a;
+    }
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
+    .container{width:100%;max-width:460px;background:var(--card);padding:24px 20px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+    h2{margin:0 0 18px;text-align:center;color:var(--primary)}
+    label{display:block;font-weight:600;color:#2f3b48;margin:12px 0 6px}
+    input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;outline:none}
+    input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+    .range{display:flex;gap:10px;font-size:.85rem;color:#4b5a6a;justify-content:space-between;margin-top:6px}
+    .row{display:flex;gap:10px;margin-top:14px}
+    .btn{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 id="titulo">Recarga</h2>
+
+    <label for="usuario">Usuario</label>
+    <input id="usuario" type="text" placeholder="Ingrese usuario" />
+
+    <label for="monto">Monto</label>
+    <input id="monto" type="text" inputmode="decimal" placeholder="0.00" />
+    <div class="range"><span>Mín: <strong id="minLabel">—</strong></span><span>Máx: <strong id="maxLabel">—</strong></span></div>
+
+    <div class="row">
+      <button id="btnSend" class="btn" disabled>Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+
+    function getParams(){
+      const q = new URLSearchParams(location.search);
+      const min = q.get('montominimo');
+      const max = q.get('montomaximo');
+      const usuario = q.get('usuario') ?? '';
+      const plataforma = q.get('plataforma') ?? '';
+      return { minRaw:min, maxRaw:max, usuario, plataforma };
+    }
+
+    function parseAmount(v){
+      if(v==null) return NaN;
+      const t = String(v).trim().replace(/\s+/g,'').replace(/,/g,'.');
+      const fixed = t.replace(/(\.)+(?=.*\.)/g, '.');
+      const n = Number(fixed);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function format2(n){
+      return (Math.round(n*100)/100).toFixed(2);
+    }
+
+    const state = { min: NaN, max: NaN, plataforma: '' };
+
+    function validate(){
+      const m = parseAmount($('monto').value);
+      let ok = true;
+      if(Number.isNaN(m) || m < state.min || m > state.max){
+        ok = false;
+      }
+      $('btnSend').disabled = !ok;
+
+      if(window.Telegram?.WebApp){
+        const tg = Telegram.WebApp;
+        tg.MainButton.setText('Enviar');
+        if(ok) tg.MainButton.enable(); else tg.MainButton.disable();
+      }
+      return ok;
+    }
+
+    function buildPayload(){
+      return {
+        tipo: 'miniapp_monto_usuario',
+        usuario: $('usuario').value.trim(),
+        monto: parseFloat(format2(parseAmount($('monto').value))),
+        rango: { minimo: state.min, maximo: state.max },
+        plataforma: state.plataforma,
+        source: 'webapp',
+        ts: new Date().toISOString()
+      };
+    }
+
+    function sendToTelegram(){
+      const payload = buildPayload();
+      const json = JSON.stringify(payload);
+      if(window.Telegram?.WebApp){
+        const tg = Telegram.WebApp;
+        tg.HapticFeedback?.impactOccurred?.('medium');
+        tg.sendData(json);
+        setTimeout(()=>tg.close(), 150);
+      }else{
+        console.log('JSON:', json);
+        alert(json);
+      }
+    }
+
+    (function init(){
+      const { minRaw, maxRaw, usuario, plataforma } = getParams();
+      state.min = parseAmount(minRaw);
+      state.max = parseAmount(maxRaw);
+      state.plataforma = plataforma;
+
+      if(!Number.isNaN(state.min)) $('minLabel').textContent = format2(state.min);
+      if(!Number.isNaN(state.max)) $('maxLabel').textContent = format2(state.max);
+
+      if(usuario && usuario.trim() !== ''){
+        $('usuario').value = usuario.trim();
+      }
+
+      if(plataforma && plataforma.trim() !== ''){
+        $('titulo').textContent = plataforma;
+      } else {
+        $('titulo').textContent = 'Recarga';
+      }
+
+      if(window.Telegram?.WebApp){
+        const tg = Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#ffffff');
+        tg.setBackgroundColor('#f5f8fb');
+        tg.MainButton.show();
+        tg.MainButton.onClick(()=>{ if(validate()) sendToTelegram(); });
+      }
+
+      $('usuario').addEventListener('input', validate);
+      $('monto').addEventListener('input', validate);
+      $('btnSend').addEventListener('click', ()=>{ if(validate()) sendToTelegram(); });
+
+      validate();
+    })();
+  </script>
+</body>
+</html>
