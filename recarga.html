@@ -28,6 +28,9 @@
     .upper{ text-transform:uppercase }
     .normalcase{ text-transform:none }
     .range{display:flex;gap:10px;font-size:.85rem;color:#4b5a6a;justify-content:space-between;margin-top:6px}
+    .row{display:flex;gap:10px;margin-top:14px}
+    .btn{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -53,6 +56,10 @@
     <label for="monto">Monto</label>
     <input id="monto" type="text" inputmode="numeric" placeholder="0" />
     <div class="range"><span>Mín: <strong id="minLabel">—</strong></span><span>Máx: <strong id="maxLabel">—</strong></span></div>
+
+    <div class="row">
+      <button id="btnSend" class="btn" disabled>Enviar</button>
+    </div>
   </div>
 
   <script>
@@ -108,11 +115,7 @@
       const regex = /^[A-Z0-9]+$/;
       if(!regex.test(user)){ ok = false; }
 
-      if(window.Telegram?.WebApp){
-        const tg = Telegram.WebApp;
-        tg.MainButton.setText('Enviar');
-        if(ok) tg.MainButton.enable(); else tg.MainButton.disable();
-      }
+      $('btnSend').disabled = !ok;
       return ok;
     }
 
@@ -133,9 +136,14 @@
       const json = JSON.stringify(payload);
       if(window.Telegram?.WebApp){
         const tg = Telegram.WebApp;
-        tg.HapticFeedback?.impactOccurred?.('medium');
-        tg.sendData(json);
-        setTimeout(()=>tg.close(), 150);
+        try{
+          tg.HapticFeedback?.impactOccurred?.('medium');
+          tg.sendData(json);
+          setTimeout(()=>tg.close(), 150);
+        }catch(e){
+          console.error(e);
+          alert('Error al enviar: '+ e.message);
+        }
       }else{
         console.log('JSON:', json);
         alert(json);
@@ -159,16 +167,6 @@
       updateTitle();
       updateNombreLabel();
 
-      if(window.Telegram?.WebApp){
-        const tg = Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.setHeaderColor('#ffffff');
-        tg.setBackgroundColor('#f5f8fb');
-        tg.MainButton.show();
-        tg.MainButton.onClick(()=>{ if(validate()) sendToTelegram(); });
-      }
-
       $('modo').addEventListener('change', e => {
         state.modo = e.target.checked ? 'cobro' : 'recarga';
         updateTitle();
@@ -185,6 +183,7 @@
         e.target.value = e.target.value.replace(/\D/g, '');
         validate();
       });
+      $('btnSend').addEventListener('click', ()=>{ if(validate()) sendToTelegram(); });
 
       validate();
     })();
