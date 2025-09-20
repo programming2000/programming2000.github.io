@@ -54,8 +54,8 @@
 
     <div id="nombreGroup">
       <label id="lblNombre" for="nombre">Nombre del depositante</label>
-      <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" />
-      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
+      <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero para su actualizacion.</div>
     </div>
 
     <label for="monto">Monto</label>
@@ -115,27 +115,18 @@
       $('lblNombre').textContent = label;
     }
 
-    function updateNombreVisibilityAndEditability(){
+    function updateNombreVisibility(){
       const group = $('nombreGroup');
-      const input = $('nombre');
       const shouldShow = state.banksecurity ? true : (state.modo === 'cobro');
-      // Mostrar/ocultar
       if(shouldShow){
         group.classList.remove('hidden');
       } else {
         group.classList.add('hidden');
       }
-      // Editabilidad
-      if(state.banksecurity){
-        input.setAttribute('readonly', true);
-      } else {
-        input.removeAttribute('readonly');
-      }
     }
 
     function toggleUsuarioEditable(){
       if(state.modo === 'cobro'){
-        // Restablece SIEMPRE al valor original de la URL y bloquea edición
         $('usuario').value = state.usuarioInicial;
         $('usuario').setAttribute('readonly', true);
       } else {
@@ -147,10 +138,8 @@
       const m = parseIntAmount($('monto').value);
       let ok = true;
 
-      // Validar monto entero dentro del rango
       if(Number.isNaN(m) || m < state.min || m > state.max){ ok = false; }
 
-      // Validar usuario (solo letras y números en mayúscula)
       const user = $('usuario').value.trim();
       const regex = /^[A-Z0-9]+$/;
       if(!regex.test(user)){ ok = false; }
@@ -159,7 +148,6 @@
       return ok;
     }
 
-    // Envía usuario, monto, nombre, plataforma y modo ('pago'|'cobro')
     function buildPayload(){
       const modo = (state.modo === 'recarga') ? 'pago' : 'cobro';
       return {
@@ -202,7 +190,6 @@
       if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min;
       if(!Number.isNaN(state.max)) $('maxLabel').textContent = state.max;
 
-      // Usuario inicial desde la URL en MAYÚSCULAS
       if(usuario && usuario.trim() !== ''){
         state.usuarioInicial = usuario.trim().toUpperCase();
         $('usuario').value = state.usuarioInicial;
@@ -212,14 +199,14 @@
 
       updateTitle();
       updateNombreLabel();
-      updateNombreVisibilityAndEditability();
+      updateNombreVisibility();
       toggleUsuarioEditable();
 
       $('modo').addEventListener('change', e => {
         state.modo = e.target.checked ? 'cobro' : 'recarga';
         updateTitle();
         updateNombreLabel();
-        updateNombreVisibilityAndEditability();
+        updateNombreVisibility();
         toggleUsuarioEditable();
         validate();
       });
@@ -228,7 +215,6 @@
         e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         validate();
       });
-      $('nombre').addEventListener('input', () => validate());
       $('monto').addEventListener('input', e => {
         e.target.value = e.target.value.replace(/\D/g, '');
         validate();
