@@ -39,14 +39,13 @@
   <div class="container">
     <h2 id="titulo">Recarga</h2>
 
-    <!-- Switch Recarga / Cobro -->
-    <div class="toggle" aria-label="Seleccionar tipo de operación">
+    <div id="toggleGroup" class="toggle" aria-label="Seleccionar tipo de operación">
       <span>Recarga</span>
       <label class="switch">
         <input id="modo" type="checkbox" aria-label="Alternar entre Recarga y Cobro" />
         <span class="slider"></span>
       </label>
-      <span>Cobro</span>
+      <span id="cobroLabel">Cobro</span>
     </div>
 
     <label for="usuario">Usuario</label>
@@ -77,11 +76,12 @@
       const maxCobro = q.get('maxcobro');
       const usuario = q.get('usuario') ?? '';
       const recarga = q.get('recarga') ?? '';
-      const cobro = q.get('cobro') ?? '';
+      const cobroTitle = q.get('cobro') ?? '';
       const nombre = q.get('nombre') ?? '';
       const plataforma = q.get('plataforma') ?? '';
       const banksecurity = q.get('banksecurity') ?? 'false';
-      return { minRaw:min, maxRaw:max, maxCobroRaw:maxCobro, usuario, recarga, cobro, nombre, plataforma, banksecurity };
+      const cobroEnabled = q.get('cobroEnabled') ?? 'false';
+      return { minRaw:min, maxRaw:max, maxCobroRaw:maxCobro, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled };
     }
 
     function parseBool(v){
@@ -90,7 +90,7 @@
 
     function parseIntAmount(v){
       if(v==null) return NaN;
-      const t = String(v).trim().replace(/\D/g,''); // solo dígitos
+      const t = String(v).trim().replace(/\D/g,'');
       if(t === '') return NaN;
       const n = parseInt(t, 10);
       return Number.isFinite(n) ? n : NaN;
@@ -100,15 +100,15 @@
       min: NaN,
       max: NaN,
       maxCobro: NaN,
-      modo: 'recarga', // 'recarga' | 'cobro'
+      modo: 'recarga',
       titles: { recarga: 'Recarga', cobro: 'Cobro' },
       plataforma: '',
       usuarioInicial: '',
-      banksecurity: false
+      banksecurity: false,
+      cobroEnabled: false
     };
 
     function currentMax(){
-      // Si estamos en cobro y hay maxCobro válido, úsalo; de lo contrario usa max general
       if(state.modo === 'cobro' && !Number.isNaN(state.maxCobro)) return state.maxCobro;
       return state.max;
     }
@@ -147,14 +147,11 @@
     function validate(){
       const m = parseIntAmount($('monto').value);
       let ok = true;
-
       const mx = currentMax();
       if(Number.isNaN(m) || m < state.min || (!Number.isNaN(mx) && m > mx)) { ok = false; }
-
       const user = $('usuario').value.trim();
       const regex = /^[A-Z0-9]+$/;
       if(!regex.test(user)){ ok = false; }
-
       $('btnSend').disabled = !ok;
       return ok;
     }
@@ -190,16 +187,25 @@
     }
 
     (function init(){
-      const { minRaw, maxRaw, maxCobroRaw, usuario, recarga, cobro, nombre, plataforma, banksecurity } = getParams();
+      const { minRaw, maxRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled } = getParams();
       state.min = parseIntAmount(minRaw);
       state.max = parseIntAmount(maxRaw);
       state.maxCobro = parseIntAmount(maxCobroRaw);
       state.titles.recarga = (recarga && recarga.trim()) ? recarga.trim() : 'Recarga';
-      state.titles.cobro   = (cobro && cobro.trim()) ? cobro.trim() : 'Cobro';
+      state.titles.cobro   = (cobroTitle && cobroTitle.trim()) ? cobroTitle.trim() : 'Cobro';
       state.plataforma     = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
       state.banksecurity   = parseBool(banksecurity);
+      state.cobroEnabled   = parseBool(cobroEnabled);
 
-      // Usuario inicial desde la URL en MAYÚSCULAS
+      if(!state.cobroEnabled){
+        // Ocultar completamente la opción de cobro
+        $('toggleGroup').remove();
+        state.modo = 'recarga';
+      }
+
+      if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min;
+      if(!Number.isNaN(state.max)) $('maxLabel').textContent = state.max;
+
       if(usuario && usuario.trim() !== ''){
         state.usuarioInicial = usuario.trim().toUpperCase();
         $('usuario').value = state.usuarioInicial;
@@ -213,15 +219,17 @@
       updateRangeLabels();
       toggleUsuarioEditable();
 
-      $('modo').addEventListener('change', e => {
-        state.modo = e.target.checked ? 'cobro' : 'recarga';
-        updateTitle();
-        updateNombreLabel();
-        updateNombreVisibility();
-        updateRangeLabels();
-        toggleUsuarioEditable();
-        validate();
-      });
+      if(state.cobroEnabled){
+        $('modo').addEventListener('change', e => {
+          state.modo = e.target.checked ? 'cobro' : 'recarga';
+          updateTitle();
+          updateNombreLabel();
+          updateNombreVisibility();
+          updateRangeLabels();
+          toggleUsuarioEditable();
+          validate();
+        });
+      }
 
       $('usuario').addEventListener('input', e => {
         e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
