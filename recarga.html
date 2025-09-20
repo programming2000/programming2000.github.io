@@ -90,7 +90,8 @@
       max: NaN,
       modo: 'recarga', // 'recarga' | 'cobro'
       titles: { recarga: 'Recarga', cobro: 'Cobro' },
-      plataforma: ''
+      plataforma: '',
+      usuarioInicial: ''
     };
 
     function updateTitle(){
@@ -105,6 +106,8 @@
 
     function toggleUsuarioEditable(){
       if(state.modo === 'cobro'){
+        // Restablece SIEMPRE al valor original de la URL y bloquea edición
+        $('usuario').value = state.usuarioInicial;
         $('usuario').setAttribute('readonly', true);
       } else {
         $('usuario').removeAttribute('readonly');
@@ -169,8 +172,13 @@
       if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min;
       if(!Number.isNaN(state.max)) $('maxLabel').textContent = state.max;
 
-      if(usuario && usuario.trim() !== ''){ $('usuario').value = usuario.trim().toUpperCase(); }
-      if(nombre  && nombre.trim()  !== ''){ $('nombre').value  = nombre.trim(); }
+      // Usuario inicial desde la URL en MAYÚSCULAS
+      if(usuario && usuario.trim() !== ''){
+        state.usuarioInicial = usuario.trim().toUpperCase();
+        $('usuario').value = state.usuarioInicial;
+      }
+
+      if(nombre && nombre.trim() !== ''){ $('nombre').value = nombre.trim(); }
 
       updateTitle();
       updateNombreLabel();
