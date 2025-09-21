@@ -7,7 +7,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --warning:#d84a4a;
+      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --warning:#d84a4a; --note:#8a6f00;
     }
     *{box-sizing:border-box}
     body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
@@ -28,6 +28,7 @@
     .upper{ text-transform:uppercase }
     .normalcase{ text-transform:none }
     .warning{font-size:0.85rem;color:var(--warning);margin-top:4px}
+    .note{font-size:0.85rem;color:var(--note);margin-top:6px}
     .range{display:flex;gap:10px;font-size:.85rem;color:#4b5a6a;justify-content:space-between;margin-top:6px}
     .row{display:flex;gap:10px;margin-top:14px}
     .btn{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
@@ -54,12 +55,16 @@
     <div id="nombreGroup">
       <label id="lblNombre" for="nombre">Nombre del depositante</label>
       <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
-      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero para actualizarlo.</div>
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
     </div>
 
     <label for="monto">Monto</label>
     <input id="monto" type="text" inputmode="numeric" placeholder="0" />
-    <div class="range"><span>Mín: <strong id="minLabel">—</strong></span><span>Máx: <strong id="maxLabel">—</strong></span></div>
+    <div class="range">
+      <span>Mín: <strong id="minLabel">—</strong></span>
+      <span>Máx: <strong id="maxLabel">—</strong></span>
+    </div>
+    <div id="cobroNote" class="note hidden"></div>
 
     <div class="row">
       <button id="btnSend" class="btn" disabled>Enviar</button>
@@ -71,9 +76,13 @@
 
     function getParams(){
       const q = new URLSearchParams(location.search);
-      const min = q.get('montominimo');
-      const max = q.get('montomaximo');
-      const maxCobro = q.get('maxcobro');
+      // Recarga min/max (acepta varias variantes para compatibilidad)
+      const min = q.get('montoMinimo') ?? q.get('montominimo');
+      const max = q.get('MontoMaximo') ?? q.get('montomaximo');
+      // Cobro min/max
+      const minCobro = q.get('MinCobro');
+      const maxCobro = q.get('MaxCobro') ?? q.get('maxcobro');
+
       const usuario = q.get('usuario') ?? '';
       const recarga = q.get('recarga') ?? '';
       const cobroTitle = q.get('cobro') ?? '';
@@ -81,12 +90,10 @@
       const plataforma = q.get('plataforma') ?? '';
       const banksecurity = q.get('banksecurity') ?? 'false';
       const cobroEnabled = q.get('cobroEnabled') ?? 'false';
-      return { minRaw:min, maxRaw:max, maxCobroRaw:maxCobro, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled };
+      return { minRaw:min, maxRaw:max, minCobroRaw:minCobro, maxCobroRaw:maxCobro, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled };
     }
 
-    function parseBool(v){
-      return String(v).trim().toLowerCase() === 'true';
-    }
+    function parseBool(v){ return String(v).trim().toLowerCase() === 'true'; }
 
     function parseIntAmount(v){
       if(v==null) return NaN;
@@ -97,9 +104,13 @@
     }
 
     const state = {
+      // Recarga
       min: NaN,
       max: NaN,
+      // Cobro
+      minCobro: NaN,
       maxCobro: NaN,
+      // UI
       modo: 'recarga',
       titles: { recarga: 'Recarga', cobro: 'Cobro' },
       labels: { recarga: 'Recarga', cobro: 'Cobro' },
@@ -117,9 +128,11 @@
       return { first, rest };
     }
 
+    function currentMin(){
+      return state.modo === 'cobro' && !Number.isNaN(state.minCobro) ? state.minCobro : state.min;
+    }
     function currentMax(){
-      if(state.modo === 'cobro' && !Number.isNaN(state.maxCobro)) return state.maxCobro;
-      return state.max;
+      return state.modo === 'cobro' && !Number.isNaN(state.maxCobro) ? state.maxCobro : state.max;
     }
 
     function updateTitle(){
@@ -139,9 +152,10 @@
     }
 
     function updateRangeLabels(){
-      if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min; else $('minLabel').textContent = '—';
+      const mn = currentMin();
       const mx = currentMax();
-      if(!Number.isNaN(mx)) $('maxLabel').textContent = mx; else $('maxLabel').textContent = '—';
+      $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
+      $('maxLabel').textContent = Number.isNaN(mx) ? '—' : mx;
     }
 
     function toggleUsuarioEditable(){
@@ -153,14 +167,41 @@
       }
     }
 
+    function updateCobroNote(){
+      const note = $('cobroNote');
+      const mx = state.maxCobro; // mensaje usa el MaximoPago de COBRO
+      const m = parseIntAmount($('monto').value);
+      const shouldShow = state.modo === 'cobro' && !Number.isNaN(mx) && !Number.isNaN(m) && m > mx;
+      if(shouldShow){
+        note.textContent = `Para montos mayores a ${mx} Bs, se solicitará la aprobación al administrador. Esto podría demorar algunos minutos.`;
+        note.classList.remove('hidden');
+      }else{
+        note.classList.add('hidden');
+        note.textContent = '';
+      }
+    }
+
     function validate(){
       const m = parseIntAmount($('monto').value);
       let ok = true;
+      const mn = currentMin();
       const mx = currentMax();
-      if(Number.isNaN(m) || m < state.min || (!Number.isNaN(mx) && m > mx)) { ok = false; }
+
+      // Reglas:
+      // - En Recarga: m debe estar entre [min, max].
+      // - En Cobro: m >= minCobro; si supera maxCobro, se permite pero se muestra aviso.
+      if(Number.isNaN(m)) ok = false;
+      if(state.modo === 'recarga'){
+        if(Number.isNaN(mn) || Number.isNaN(mx) || m < mn || m > mx) ok = false;
+      } else {
+        if(Number.isNaN(mn) || m < mn) ok = false;
+        // si m > maxCobro: permitido, sólo aviso; no invalida.
+      }
+
       const user = $('usuario').value.trim();
       const regex = /^[A-Z0-9]+$/;
-      if(!regex.test(user)){ ok = false; }
+      if(!regex.test(user)) ok = false;
+
       $('btnSend').disabled = !ok;
       return ok;
     }
@@ -185,10 +226,7 @@
           tg.HapticFeedback?.impactOccurred?.('medium');
           tg.sendData(json);
           setTimeout(()=>tg.close(), 150);
-        }catch(e){
-          console.error(e);
-          alert('Error al enviar: '+ e.message);
-        }
+        }catch(e){ console.error(e); alert('Error al enviar: '+ e.message); }
       }else{
         console.log('JSON:', json);
         alert(json);
@@ -196,38 +234,37 @@
     }
 
     (function init(){
-      const { minRaw, maxRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled } = getParams();
+      const { minRaw, maxRaw, minCobroRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled } = getParams();
+      // Rango Recarga
       state.min = parseIntAmount(minRaw);
       state.max = parseIntAmount(maxRaw);
+      // Rango Cobro
+      state.minCobro = parseIntAmount(minCobroRaw);
       state.maxCobro = parseIntAmount(maxCobroRaw);
 
+      // Etiquetas y títulos desde primera palabra/resto
       const recargaSplit = splitTitle(recarga);
       const cobroSplit = splitTitle(cobroTitle);
       state.labels.recarga = recargaSplit.first || 'Recarga';
       state.labels.cobro   = cobroSplit.first || 'Cobro';
       state.titles.recarga = recargaSplit.rest || 'Recarga';
       state.titles.cobro   = cobroSplit.rest || 'Cobro';
-
       $('recargaLabel').textContent = state.labels.recarga;
       $('cobroLabel').textContent   = state.labels.cobro;
 
-      state.plataforma     = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
-      state.banksecurity   = parseBool(banksecurity);
-      state.cobroEnabled   = parseBool(cobroEnabled);
+      state.plataforma   = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
+      state.banksecurity = parseBool(banksecurity);
+      state.cobroEnabled = parseBool(cobroEnabled);
 
       if(!state.cobroEnabled){
         $('toggleGroup').remove();
         state.modo = 'recarga';
       }
 
-      if(!Number.isNaN(state.min)) $('minLabel').textContent = state.min;
-      if(!Number.isNaN(state.max)) $('maxLabel').textContent = state.max;
-
       if(usuario && usuario.trim() !== ''){
         state.usuarioInicial = usuario.trim().toUpperCase();
         $('usuario').value = state.usuarioInicial;
       }
-
       if(nombre && nombre.trim() !== ''){ $('nombre').value = nombre.trim(); }
 
       updateTitle();
@@ -235,6 +272,7 @@
       updateNombreVisibility();
       updateRangeLabels();
       toggleUsuarioEditable();
+      updateCobroNote();
 
       if(state.cobroEnabled){
         $('modo').addEventListener('change', e => {
@@ -244,6 +282,7 @@
           updateNombreVisibility();
           updateRangeLabels();
           toggleUsuarioEditable();
+          updateCobroNote();
           validate();
         });
       }
@@ -254,6 +293,7 @@
       });
       $('monto').addEventListener('input', e => {
         e.target.value = e.target.value.replace(/\D/g, '');
+        updateCobroNote();
         validate();
       });
       $('btnSend').addEventListener('click', ()=>{ if(validate()) sendToTelegram(); });
