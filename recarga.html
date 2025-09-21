@@ -74,22 +74,33 @@
   <script>
     const $ = (id)=>document.getElementById(id);
 
+    // Lee parámetros desde múltiples orígenes (search, hash y Telegram start_param)
     function getParams(){
-      const q = new URLSearchParams(location.search);
-      // Recarga min/max (acepta varias variantes para compatibilidad)
-      const min = q.get('montoMinimo') ?? q.get('montominimo');
-      const max = q.get('MontoMaximo') ?? q.get('montomaximo');
-      // Cobro min/max
-      const minCobro = q.get('MinCobro');
-      const maxCobro = q.get('MaxCobro') ?? q.get('maxcobro');
+      const layers = [];
+      try { layers.push(new URLSearchParams(location.search)); } catch {}
+      try { layers.push(new URLSearchParams(location.hash?.startsWith('#')? location.hash.slice(1): '')); } catch {}
+      try { layers.push(new URLSearchParams(window.Telegram?.WebApp?.initDataUnsafe?.start_param || '')); } catch {}
 
-      const usuario = q.get('usuario') ?? '';
-      const recarga = q.get('recarga') ?? '';
-      const cobroTitle = q.get('cobro') ?? '';
-      const nombre = q.get('nombre') ?? '';
-      const plataforma = q.get('plataforma') ?? '';
-      const banksecurity = q.get('banksecurity') ?? 'false';
-      const cobroEnabled = q.get('cobroEnabled') ?? 'false';
+      const g = (key)=>{
+        for(const qs of layers){ const v = qs.get(key); if(v!==null) return v; }
+        return null;
+      };
+
+      // Recarga min/max (compatibilidad con mayúsculas/minúsculas)
+      const min = g('montoMinimo') ?? g('montominimo');
+      const max = g('MontoMaximo') ?? g('montomaximo');
+      // Cobro min/max (compatibilidad con legado)
+      const minCobro = g('MinCobro') ?? g('mincobro');
+      const maxCobro = g('MaxCobro') ?? g('maxcobro');
+
+      const usuario = g('usuario') ?? '';
+      const recarga = g('recarga') ?? '';
+      const cobroTitle = g('cobro') ?? '';
+      const nombre = g('nombre') ?? '';
+      const plataforma = g('plataforma') ?? '';
+      const banksecurity = g('banksecurity') ?? 'false';
+      const cobroEnabled = g('cobroEnabled') ?? 'false';
+
       return { minRaw:min, maxRaw:max, minCobroRaw:minCobro, maxCobroRaw:maxCobro, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled };
     }
 
@@ -187,15 +198,11 @@
       const mn = currentMin();
       const mx = currentMax();
 
-      // Reglas:
-      // - En Recarga: m debe estar entre [min, max].
-      // - En Cobro: m >= minCobro; si supera maxCobro, se permite pero se muestra aviso.
       if(Number.isNaN(m)) ok = false;
       if(state.modo === 'recarga'){
         if(Number.isNaN(mn) || Number.isNaN(mx) || m < mn || m > mx) ok = false;
       } else {
-        if(Number.isNaN(mn) || m < mn) ok = false;
-        // si m > maxCobro: permitido, sólo aviso; no invalida.
+        if(Number.isNaN(mn) || m < mn) ok = false; // en cobro se permite > maxCobro
       }
 
       const user = $('usuario').value.trim();
@@ -243,12 +250,10 @@
       state.maxCobro = parseIntAmount(maxCobroRaw);
 
       // Etiquetas y títulos desde primera palabra/resto
-      const recargaSplit = splitTitle(recarga);
-      const cobroSplit = splitTitle(cobroTitle);
-      state.labels.recarga = recargaSplit.first || 'Recarga';
-      state.labels.cobro   = cobroSplit.first || 'Cobro';
-      state.titles.recarga = recargaSplit.rest || 'Recarga';
-      state.titles.cobro   = cobroSplit.rest || 'Cobro';
+      const recargaSplit = (function(v){ if(!v) return {first:'Recarga',rest:'Recarga'}; const p=v.trim().split(/\s+/); return { first:p[0]||'Recarga', rest:(p.slice(1).join(' ')||'Recarga') }; })(recarga);
+      const cobroSplit   = (function(v){ if(!v) return {first:'Cobro',rest:'Cobro'}; const p=v.trim().split(/\s+/); return { first:p[0]||'Cobro',   rest:(p.slice(1).join(' ')||'Cobro')   }; })(cobroTitle);
+      state.labels.recarga = recargaSplit.first; state.titles.recarga = recargaSplit.rest;
+      state.labels.cobro   = cobroSplit.first;   state.titles.cobro   = cobroSplit.rest;
       $('recargaLabel').textContent = state.labels.recarga;
       $('cobroLabel').textContent   = state.labels.cobro;
 
