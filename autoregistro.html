@@ -230,7 +230,7 @@
   // Enviar al bot
   confirmYes.addEventListener('click', () => {
     const payload = {
-      tipo: 'registro_usuario',
+      tipo: 'autoregistro',
       nombre: nombre.value.trim(),
       telefono: (solicitarTelefono && !grpTelefono.classList.contains('hidden'))
         ? (countryCode.value + onlyDigits(telefono.value))
