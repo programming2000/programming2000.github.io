@@ -86,9 +86,9 @@
 
     <!-- Referidor username (condicional) -->
     <div class="input-group hidden" id="grpReferidor">
-      <label for="referidor">Referidor (usuario de Telegram, sin @)</label>
-      <input id="referidor" type="text" placeholder="Ej. juan_perez" inputmode="latin" autocapitalize="off" autocomplete="off" />
-      <div id="referidorMsg" class="error">Username inválido. Usa 5–32 caracteres [a-z, 0-9, _], sin @.</div>
+      <label for="referidor">Referidor (opcional — usuario de Telegram, sin @)</label>
+      <input id="referidor" type="text" placeholder="Opcional — ej. juan_perez" inputmode="latin" autocapitalize="off" autocomplete="off" />
+      <div id="referidorMsg" class="error">Opcional: si lo escribes, usa 5–32 caracteres [a-z, 0-9, _], sin @.</div>
     </div>
 
     <button id="registrarBtn" disabled>Registrar</button>
@@ -192,7 +192,8 @@
     }
 
     if (solicitarReferidor && !grpReferidor.classList.contains('hidden')) {
-      const okRef = isValidUsername(referidor.value);
+      const valRef = sanitizeUsername(referidor.value);
+      const okRef = (valRef === '') || isValidUsername(valRef);
       setFieldState(referidor, referidorMsg, okRef); ok = ok && okRef;
     } else {
       setFieldState(referidor, referidorMsg, true);
@@ -220,7 +221,8 @@
       lines.push(`Teléfono: ${countryCode.value + onlyDigits(telefono.value)}`);
     }
     if (solicitarReferidor && !grpReferidor.classList.contains('hidden')) {
-      lines.push(`Referidor: ${sanitizeUsername(referidor.value)}`);
+      const ref = sanitizeUsername(referidor.value);
+      if (ref) lines.push(`Referidor: ${ref}`);
     }
     openModal(lines.join('\n'));
   });
@@ -236,6 +238,7 @@
       referidor: (solicitarReferidor && !grpReferidor.classList.contains('hidden'))
         ? sanitizeUsername(referidor.value)
         : null};
+    if (payload.referidor === '') payload.referidor = null;
 
     if (tg?.sendData) {
       tg.sendData(JSON.stringify(payload));
