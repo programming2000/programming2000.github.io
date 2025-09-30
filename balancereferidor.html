@@ -1,91 +1,234 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Web;
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ganancias del Cliente</title>
+<style>
+  :root{
+    --bg:#0e1116; --card:#151a22; --ink:#e8edf3; --muted:#aab3c2;
+    --ok:#18b26a; --warn:#eab308; --bad:#ef4444; --accent:#4f8cff; --line:#233042;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
+  .wrap{max-width:880px;margin:auto;padding:20px;}
+  .header{
+    background:linear-gradient(135deg,#18212c 0%, #10161e 60%, #0e131a 100%);
+    border:1px solid var(--line); border-radius:16px; padding:18px 20px;
+    display:flex;align-items:center;gap:14px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  .avatar{width:46px;height:46px;border-radius:12px;background:radial-gradient(120% 120% at 30% 20%, #5daeff 0%, #4f8cff 35%, #1a5fff 70%, #0a2a6b 100%);display:grid;place-items:center;font-weight:700;color:white;box-shadow:0 6px 20px rgba(79,140,255,.35)}
+  .h-title{font-size:18px;margin:0;line-height:1.2}
+  .h-sub{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#0b1220;color:#b6c3d6;font-size:12px}
+  .tabs{margin-top:12px;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .tab{padding:8px 12px;cursor:pointer;background:#0b1220;color:#9fb5ff;border-right:1px solid var(--line);font-size:13px;user-select:none}
+  .tab:last-child{border-right:none}
+  .tab.active{background:var(--accent);color:#fff}
+  .cards{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
+  .card{grid-column:span 12;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.20);overflow:hidden}
+  .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:15px;letter-spacing:.2px;background:#111722}
+  .pad{padding:14px 16px}
+  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)}}
+  .kpi{background:#0f1622;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .label{color:var(--muted);font-size:12px}
+  .kpi .val{font-weight:700;font-size:18px;margin-top:2px}
+  .kpi.pos .val{color:var(--ok)} .kpi.neg .val{color:var(--bad)}
+  .delta{display:inline-block;margin-left:6px;font-size:12px;padding:2px 6px;border-radius:999px;border:1px solid var(--line);color:#b6c3d6}
+  .delta.up{color:var(--ok)} .delta.down{color:var(--bad)}
+  table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  tbody tr{background:#0f1622}
+  td{padding:10px 12px;vertical-align:middle}
+  td.key{color:var(--muted);width:48%}
+  td.val{font-weight:600}
+  .row{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .val.bad{color:var(--bad)} .val.ok{color:var(--ok)} .val.warn{color:var(--warn)}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="header">
+    <div class="avatar" id="avatarTxt">CL</div>
+    <div>
+      <h1 class="h-title">Ganancias hasta la fecha</h1>
+      <p class="h-sub">Persona — <span id="personaName">—</span> · <span id="rangoFechas">—</span></p>
+      <div class="tabs" role="tablist" aria-label="Período">
+        <div class="tab" id="tab-curr" role="tab" aria-selected="true">Periodo actual</div>
+        <div class="tab" id="tab-prev" role="tab" aria-selected="false">Mes anterior</div>
+      </div>
+    </div>
+    <div style="margin-left:auto"><span class="pill"><span id="rangoTxt">Rango: —</span></span></div>
+  </section>
 
-public static class MiniAppLinkBuilder
-{
-    /// <summary>
-    /// Genera el link para la MiniApp de ganancias con período actual y mes anterior.
-    /// - fechaInicioPrev/fechaFinPrev se calculan como el primer y último día del mes anterior al de fechaInicio.
-    /// - Si 'anterior' es null, igual se envían fechas previas, pero los montos prev se enviarán como 0.
-    /// </summary>
-    public static string GenerarLinkMiniApp(
-        string baseUrl,
-        string persona,
-        DateTime fechaInicio,
-        DateTime fechaFin,
-        Modelo actual,
-        Modelo anterior = null,
-        bool abrirMesAnterior = false  // si true, agrega view=prev
-    )
-    {
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            throw new ArgumentException("baseUrl no puede ser vacío.", nameof(baseUrl));
-        if (actual == null)
-            throw new ArgumentNullException(nameof(actual));
+  <section class="cards">
+    <article class="card">
+      <h3>Resumen</h3>
+      <div class="pad">
+        <div class="kpis">
+          <div class="kpi"><div class="label">Cargas</div><div class="val" id="kpiCargas">—</div></div>
+          <div class="kpi"><div class="label">Retiros</div><div class="val" id="kpiRetiros">—</div></div>
+          <div class="kpi" id="kpiBalanceBox"><div class="label">Balance (Cargas − Retiros)</div><div class="val" id="kpiBalance">—</div></div>
+          <div class="kpi"><div class="label">Comisión de Rango</div><div class="val" id="kpiComi">—</div></div>
+        </div>
+      </div>
+    </article>
 
-        // ---- Fechas (mes anterior) ----
-        var prevStart = FirstDayOfPreviousMonth(fechaInicio);
-        var prevEnd   = LastDayOfMonth(prevStart);
+    <article class="card">
+      <h3>Detalle de cálculo</h3>
+      <div class="pad">
+        <table>
+          <tbody id="tablaCalculo"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+</div>
 
-        // ---- Helpers ----
-        string D(decimal v) => v.ToString(CultureInfo.InvariantCulture);    // decimales con '.' en la URL
-        string F(DateTime d) => d.ToString("yyyy-MM-dd");                   // ISO simple para la URL
-        string S(string s) => s ?? string.Empty;
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const getN = k => {
+    const v = qs.get(k); if(!v) return 0;
+    const n = Number(v.replace(',', '.')); return isNaN(n) ? 0 : n;
+  };
+  const getS = (k,f="—") => {
+    const v = qs.get(k); return (!v) ? f : decodeURIComponent(v);
+  };
+  const fmt = new Intl.NumberFormat('es-BO',{minimumFractionDigits:2, maximumFractionDigits:2});
 
-        // Si no hay modelo 'anterior', usar 0 para sus campos numéricos
-        var prev = anterior ?? new Modelo();
-
-        // ---- Query params ----
-        var q = HttpUtility.ParseQueryString(string.Empty);
-
-        // Vista inicial (opcional)
-        if (abrirMesAnterior) q["view"] = "prev";
-
-        // Persona y fechas actuales
-        q["persona"]     = persona;
-        q["fechaInicio"] = F(fechaInicio);
-        q["fechaFin"]    = F(fechaFin);
-
-        // Datos período actual
-        q["cargas"]             = D(actual.Cargas);
-        q["retiros"]            = D(actual.Retiros);
-        q["rangoNombre"]        = S(actual.RangoNombre);
-        q["rangoComision"]      = D(actual.RangoComision);
-        q["pagoSinDescuento"]   = D(actual.PagoSinDescuento);
-        q["prorrateoNegativo"]  = D(actual.ProrrateoNegativo);
-        q["descuento"]          = D(actual.Descuento);
-        q["subTotal"]           = D(actual.SubTotal);
-
-        // Fechas y datos del mes anterior
-        q["fechaInicioPrev"]        = F(prevStart);
-        q["fechaFinPrev"]           = F(prevEnd);
-        q["cargasPrev"]             = D(prev.Cargas);
-        q["retirosPrev"]            = D(prev.Retiros);
-        q["pagoSinDescuentoPrev"]   = D(prev.PagoSinDescuento);
-        q["prorrateoNegativoPrev"]  = D(prev.ProrrateoNegativo);
-        q["descuentoPrev"]          = D(prev.Descuento);
-        q["subTotalPrev"]           = D(prev.SubTotal);
-
-        // Construir URL
-        // Asegúrate que baseUrl ya apunte a ganancias.html (o el recurso que uses).
-        var uriBuilder = new UriBuilder(baseUrl);
-        uriBuilder.Query = q.ToString();
-
-        return uriBuilder.ToString();
+  // dd/MM/yyyy fijo
+  const fmtFecha = (txt)=>{
+    if(!txt || txt==="—") return "—";
+    const d = new Date(txt);
+    if(!isNaN(d.getTime())){
+      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const yy = d.getFullYear();
+      return `${dd}/${mm}/${yy}`;
     }
+    // soporte para dd/MM/yyyy o dd-MM-yyyy como texto
+    const m = txt.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    if(m) return `${m[1]}/${m[2]}/${m[3]}`;
+    return txt;
+  };
 
-    private static DateTime FirstDayOfPreviousMonth(DateTime reference)
-    {
-        var firstDayThisMonth = new DateTime(reference.Year, reference.Month, 1);
-        return firstDayThisMonth.AddMonths(-1);
-    }
+  // Datos período actual
+  const dataCurr = {
+    persona: getS('persona'),
+    fechaIni: fmtFecha(getS('fechaInicio')),
+    fechaFin: fmtFecha(getS('fechaFin')),
+    cargas: getN('cargas'),
+    retiros: getN('retiros'),
+    rangoNombre: getS('rangoNombre'),
+    rangoComision: getN('rangoComision'),
+    pagoSinDescuento: getN('pagoSinDescuento'),
+    prorrateoNegativo: getN('prorrateoNegativo'),
+    descuento: getN('descuento'),
+    subTotal: getN('subTotal')
+  };
+  dataCurr.balance = Number((dataCurr.cargas - dataCurr.retiros).toFixed(2));
 
-    private static DateTime LastDayOfMonth(DateTime anyDayInMonth)
-    {
-        var firstNext = new DateTime(anyDayInMonth.Year, anyDayInMonth.Month, 1).AddMonths(1);
-        return firstNext.AddDays(-1);
-    }
-}
+  // Datos mes anterior (si no llegan, se quedan en 0/—)
+  const dataPrev = {
+    persona: dataCurr.persona,
+    fechaIni: fmtFecha(getS('fechaInicioPrev')),
+    fechaFin: fmtFecha(getS('fechaFinPrev')),
+    cargas: getN('cargasPrev'),
+    retiros: getN('retirosPrev'),
+    rangoNombre: dataCurr.rangoNombre,
+    rangoComision: dataCurr.rangoComision,
+    pagoSinDescuento: getN('pagoSinDescuentoPrev'),
+    prorrateoNegativo: getN('prorrateoNegativoPrev'),
+    descuento: getN('descuentoPrev'),
+    subTotal: getN('subTotalPrev')
+  };
+  dataPrev.balance = Number((dataPrev.cargas - dataPrev.retiros).toFixed(2));
+
+  // UI refs
+  const avatarTxt = document.getElementById('avatarTxt');
+  const personaName = document.getElementById('personaName');
+  const rangoFechas = document.getElementById('rangoFechas');
+  const rangoTxt = document.getElementById('rangoTxt');
+  const kpiCargas = document.getElementById('kpiCargas');
+  const kpiRetiros = document.getElementById('kpiRetiros');
+  const kpiBalance = document.getElementById('kpiBalance');
+  const kpiBalanceBox = document.getElementById('kpiBalanceBox');
+  const kpiComi = document.getElementById('kpiComi');
+  const tbody = document.getElementById('tablaCalculo');
+  const tabCurr = document.getElementById('tab-curr');
+  const tabPrev = document.getElementById('tab-prev');
+
+  const setTabState = (which)=>{
+    tabCurr.classList.toggle('active', which==='curr');
+    tabPrev.classList.toggle('active', which==='prev');
+    tabCurr.setAttribute('aria-selected', which==='curr' ? 'true':'false');
+    tabPrev.setAttribute('aria-selected', which==='prev' ? 'true':'false');
+  };
+
+  const render = (data, compare=null)=>{
+    // Header
+    const iniciales = data.persona && data.persona!=='—'
+      ? data.persona.split(/\s+/).slice(0,2).map(s=>s[0]?.toUpperCase()||'').join('')
+      : 'CL';
+    avatarTxt.textContent = iniciales;
+    personaName.textContent = data.persona || '—';
+    rangoFechas.textContent = `${data.fechaIni || '—'} – ${data.fechaFin || '—'}`;
+    rangoTxt.textContent = `Rango: ${data.rangoNombre || '—'} (${fmt.format(data.rangoComision||0)}%)`;
+
+    // KPIs
+    const setWithDelta = (el, val, prevVal)=>{
+      el.innerHTML = `Bs ${fmt.format(val)}`;
+      if(prevVal==null) return;
+      const diff = Number((val - prevVal).toFixed(2));
+      const span = document.createElement('span');
+      span.className = 'delta ' + (diff>0?'up':diff<0?'down':'');
+      const sign = diff>0?'+':diff<0?'-':'';
+      span.textContent = ` ${sign}Bs ${fmt.format(Math.abs(diff))}`;
+      el.appendChild(span);
+    };
+
+    setWithDelta(kpiCargas, data.cargas, compare ? compare.cargas : null);
+    setWithDelta(kpiRetiros, data.retiros, compare ? compare.retiros : null);
+    kpiBalanceBox.classList.remove('pos','neg');
+    kpiBalanceBox.classList.add(data.balance>=0 ? 'pos':'neg');
+    setWithDelta(kpiBalance, data.balance, compare ? compare.balance : null);
+    kpiComi.textContent = `${fmt.format(data.rangoComision||0)}%`;
+
+    // Tabla
+    tbody.innerHTML = '';
+    const rows = [
+      {k:'Balance base', v:data.balance, cls:data.balance>=0?'ok':'bad', hint:'(Cargas − Retiros)'},
+      {k:`Comisión por rango (${fmt.format(data.rangoComision||0)}%)*`, v:data.pagoSinDescuento, cls:data.pagoSinDescuento>=0?'ok':'bad'},
+      {k:'Prorrateo negativo', v:data.prorrateoNegativo, cls:data.prorrateoNegativo<0?'bad':'warn'},
+      {k:'Descuento', v:-Math.abs(data.descuento||0), cls:'warn'},
+      {k:'Pago neto (Subtotal)', v:data.subTotal, cls:data.subTotal>=0?'ok':'bad', strong:true}
+    ];
+    rows.forEach(r=>{
+      const tr = document.createElement('tr'); tr.className='row';
+      const tdK = document.createElement('td'); tdK.className='key'; tdK.innerHTML = r.k + (r.hint?` <span class="badge">${r.hint}</span>`:'');
+      const tdV = document.createElement('td'); tdV.className='val'; tdV.textContent = `Bs ${fmt.format(r.v||0)}`;
+      if(r.cls) tdV.classList.add(r.cls);
+      if(r.strong){ tdV.style.fontSize='20px'; tdV.style.fontWeight='800'; }
+      tr.appendChild(tdK); tr.appendChild(tdV); tbody.appendChild(tr);
+    });
+  };
+
+  // Inicializa vista (permite ?view=prev)
+  const initialView = (getS('view','curr').toLowerCase()==='prev') ? 'prev' : 'curr';
+  setTabState(initialView);
+  if(initialView==='curr') render(dataCurr, dataPrev);
+  else render(dataPrev, dataCurr);
+
+  tabCurr.addEventListener('click', ()=>{ setTabState('curr'); render(dataCurr, dataPrev); history.replaceState(null,'',updateQuery('view','curr')); });
+  tabPrev.addEventListener('click', ()=>{ setTabState('prev'); render(dataPrev, dataCurr); history.replaceState(null,'',updateQuery('view','prev')); });
+
+  function updateQuery(key, val){
+    const url = new URL(location.href);
+    url.searchParams.set(key, val);
+    return url.toString();
+  }
+})();
+</script>
+</body>
+</html>
