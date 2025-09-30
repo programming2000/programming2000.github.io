@@ -15,13 +15,15 @@
     background:linear-gradient(135deg,#18212c 0%, #10161e 60%, #0e131a 100%);
     border:1px solid var(--line); border-radius:16px; padding:18px 20px;
     display:flex;align-items:center;gap:14px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    min-width:0;
   }
   .avatar{width:46px;height:46px;border-radius:12px;background:radial-gradient(120% 120% at 30% 20%, #5daeff 0%, #4f8cff 35%, #1a5fff 70%, #0a2a6b 100%);display:grid;place-items:center;font-weight:700;color:white;box-shadow:0 6px 20px rgba(79,140,255,.35)}
-  .h-title{font-size:18px;margin:0;line-height:1.2}
+  .head-main{min-width:0;flex:1 1 auto}
+  .h-title{font-size:18px;margin:0;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .h-sub{margin:2px 0 0;color:var(--muted);font-size:13px}
   .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#0b1220;color:#b6c3d6;font-size:12px}
   .tabs{margin-top:12px;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .tab{padding:8px 12px;cursor:pointer;background:#0b1220;color:#9fb5ff;border-right:1px solid var(--line);font-size:13px;user-select:none}
+  .tab{padding:8px 12px;cursor:pointer;background:#0b1220;color:#9fb5ff;border-right:1px solid var(--line);font-size:13px;user-select:none;white-space:nowrap}
   .tab:last-child{border-right:none}
   .tab.active{background:var(--accent);color:#fff}
   .cards{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
@@ -50,9 +52,9 @@
 <div class="wrap">
   <section class="header">
     <div class="avatar" id="avatarTxt">CL</div>
-    <div>
-      <h1 class="h-title">Ganancias hasta la fecha</h1>
-      <p class="h-sub"><span id="personaName">—</span> · <span id="rangoFechas">—</span></p>
+    <div class="head-main">
+      <h1 class="h-title" id="personaName">—</h1>
+      <p class="h-sub"><span id="rangoFechas">—</span></p>
       <div class="tabs" role="tablist" aria-label="Período">
         <div class="tab" id="tab-curr" role="tab" aria-selected="true">Periodo actual</div>
         <div class="tab" id="tab-prev" role="tab" aria-selected="false">Mes anterior</div>
@@ -88,16 +90,44 @@
 <script>
 (function(){
   const qs = new URLSearchParams(location.search);
-  const getN = k => {
-    const v = qs.get(k); if(!v) return 0;
-    const n = Number(v.replace(',', '.')); return isNaN(n) ? 0 : n;
+
+  // === Parser robusto de números ===
+  const getN = (k) => {
+    const raw = qs.get(k);
+    if (raw == null || raw === "") return 0;
+    let v = String(raw).trim();
+
+    const hasComma = v.includes(",");
+    const hasDot = v.includes(".");
+    if (hasComma && hasDot) {
+      const lastComma = v.lastIndexOf(",");
+      const lastDot = v.lastIndexOf(".");
+      if (lastComma > lastDot) {
+        // 1.234,56 -> 1234.56
+        v = v.replace(/\./g, "").replace(",", ".");
+      } else {
+        // 1,234.56 -> 1234.56
+        v = v.replace(/,/g, "");
+      }
+    } else if (hasComma) {
+      // 1234,56 -> 1234.56
+      v = v.replace(",", ".");
+    } else {
+      // Solo puntos: si son separadores de miles, quítalos
+      if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw)) v = v.replace(/\./g, "");
+    }
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
   };
+
   const getS = (k,f="—") => {
-    const v = qs.get(k); return (!v) ? f : decodeURIComponent(v);
+    const v = qs.get(k);
+    return (!v) ? f : decodeURIComponent(v);
   };
+
   const fmt = new Intl.NumberFormat('es-BO',{minimumFractionDigits:2, maximumFractionDigits:2});
 
-  // dd/MM/yyyy fijo
+  // dd/MM/yyyy fijo (acepta ISO o dd/MM/yyyy o dd-MM/yyyy)
   const fmtFecha = (txt)=>{
     if(!txt || txt==="—") return "—";
     const d = new Date(txt);
@@ -107,11 +137,15 @@
       const yy = d.getFullYear();
       return `${dd}/${mm}/${yy}`;
     }
-    // soporte para dd/MM/yyyy o dd-MM-yyyy como texto
     const m = txt.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
     if(m) return `${m[1]}/${m[2]}/${m[3]}`;
     return txt;
   };
+
+  // Mostrar/ocultar tab "Mes anterior"
+  const allowPrev = getS('abrirmesanterior','true').toLowerCase() === 'true';
+  const tabPrev = document.getElementById('tab-prev');
+  if(!allowPrev){ tabPrev.style.display = 'none'; }
 
   // Datos período actual
   const dataCurr = {
@@ -129,7 +163,7 @@
   };
   dataCurr.balance = Number((dataCurr.cargas - dataCurr.retiros).toFixed(2));
 
-  // Datos mes anterior (si no llegan, se quedan en 0/—)
+  // Datos mes anterior
   const dataPrev = {
     persona: dataCurr.persona,
     fechaIni: fmtFecha(getS('fechaInicioPrev')),
@@ -157,16 +191,17 @@
   const kpiComi = document.getElementById('kpiComi');
   const tbody = document.getElementById('tablaCalculo');
   const tabCurr = document.getElementById('tab-curr');
-  const tabPrev = document.getElementById('tab-prev');
 
   const setTabState = (which)=>{
-    tabCurr.classList.toggle('active', which==='curr');
-    tabPrev.classList.toggle('active', which==='prev');
-    tabCurr.setAttribute('aria-selected', which==='curr' ? 'true':'false');
-    tabPrev.setAttribute('aria-selected', which==='prev' ? 'true':'false');
+    document.getElementById('tab-curr').classList.toggle('active', which==='curr');
+    document.getElementById('tab-prev').classList.toggle('active', which==='prev');
+    document.getElementById('tab-curr').setAttribute('aria-selected', which==='curr' ? 'true':'false');
+    document.getElementById('tab-prev').setAttribute('aria-selected', which==='prev' ? 'true':'false');
   };
 
-  const render = (data, compare=null)=>{
+  const clearNode = (el) => { while (el.firstChild) el.removeChild(el.firstChild); };
+
+  const render = (data, compare=null, withDeltas=true)=>{
     // Header
     const iniciales = data.persona && data.persona!=='—'
       ? data.persona.split(/\s+/).slice(0,2).map(s=>s[0]?.toUpperCase()||'').join('')
@@ -176,10 +211,11 @@
     rangoFechas.textContent = `${data.fechaIni || '—'} – ${data.fechaFin || '—'}`;
     rangoTxt.textContent = `Rango: ${data.rangoNombre || '—'} (${fmt.format(data.rangoComision||0)}%)`;
 
-    // KPIs
+    // Helper KPI con delta (limpia y vuelve a construir)
     const setWithDelta = (el, val, prevVal)=>{
-      el.innerHTML = `Bs ${fmt.format(val)}`;
-      if(prevVal==null) return;
+      clearNode(el);
+      el.appendChild(document.createTextNode(`Bs ${fmt.format(val)}`));
+      if(!withDeltas || prevVal==null) return;
       const diff = Number((val - prevVal).toFixed(2));
       const span = document.createElement('span');
       span.className = 'delta ' + (diff>0?'up':diff<0?'down':'');
@@ -188,6 +224,7 @@
       el.appendChild(span);
     };
 
+    // KPIs
     setWithDelta(kpiCargas, data.cargas, compare ? compare.cargas : null);
     setWithDelta(kpiRetiros, data.retiros, compare ? compare.retiros : null);
     kpiBalanceBox.classList.remove('pos','neg');
@@ -214,14 +251,26 @@
     });
   };
 
-  // Inicializa vista (permite ?view=prev)
-  const initialView = (getS('view','curr').toLowerCase()==='prev') ? 'prev' : 'curr';
+  // Vista inicial
+  const initialView = (getS('view','curr').toLowerCase()==='prev' && allowPrev) ? 'prev' : 'curr';
   setTabState(initialView);
-  if(initialView==='curr') render(dataCurr, dataPrev);
-  else render(dataPrev, dataCurr);
+  if(initialView==='curr') render(dataCurr, allowPrev ? dataPrev : null, allowPrev);
+  else render(dataPrev, dataCurr, allowPrev);
 
-  tabCurr.addEventListener('click', ()=>{ setTabState('curr'); render(dataCurr, dataPrev); history.replaceState(null,'',updateQuery('view','curr')); });
-  tabPrev.addEventListener('click', ()=>{ setTabState('prev'); render(dataPrev, dataCurr); history.replaceState(null,'',updateQuery('view','prev')); });
+  // Eventos
+  document.getElementById('tab-curr').addEventListener('click', ()=>{
+    setTabState('curr');
+    render(dataCurr, allowPrev ? dataPrev : null, allowPrev);
+    history.replaceState(null,'',updateQuery('view','curr'));
+  });
+
+  if(allowPrev){
+    document.getElementById('tab-prev').addEventListener('click', ()=>{
+      setTabState('prev');
+      render(dataPrev, dataCurr, allowPrev);
+      history.replaceState(null,'',updateQuery('view','prev'));
+    });
+  }
 
   function updateQuery(key, val){
     const url = new URL(location.href);
