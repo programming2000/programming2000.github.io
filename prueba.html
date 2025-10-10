@@ -7,7 +7,8 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --warning:#d84a4a; --note:#8a6f00;
+      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee;
+      --warning:#d84a4a; --note:#8a6f00;
     }
     *{box-sizing:border-box}
     body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
@@ -39,10 +40,10 @@
   <div class="container">
     <h2 id="titulo">Recarga</h2>
 
-    <div id="toggleGroup" class="toggle">
+    <div id="toggleGroup" class="toggle" aria-label="Seleccionar tipo de operación">
       <span id="recargaLabel">Recarga</span>
       <label class="switch">
-        <input id="modo" type="checkbox" />
+        <input id="modo" type="checkbox" aria-label="Alternar entre Recarga y Cobro" />
         <span class="slider"></span>
       </label>
       <span id="cobroLabel">Cobro</span>
@@ -59,10 +60,12 @@
 
     <label for="monto">Monto</label>
     <input id="monto" type="text" inputmode="numeric" placeholder="0" />
+
     <div class="range">
       <span>Mín: <strong id="minLabel">—</strong></span>
       <span>Máx: <strong id="maxLabel">—</strong></span>
     </div>
+
     <div id="cobroNote" class="note hidden"></div>
 
     <div class="row">
@@ -73,6 +76,7 @@
   <script>
     const $ = (id)=>document.getElementById(id);
 
+    // Leer parámetros desde URL, hash y Telegram start_param
     function getParams(){
       const layers = [];
       try { layers.push(new URLSearchParams(location.search)); } catch {}
@@ -80,7 +84,10 @@
       try { layers.push(new URLSearchParams(window.Telegram?.WebApp?.initDataUnsafe?.start_param || '')); } catch {}
 
       const g = (key)=>{
-        for(const qs of layers){ const v = qs.get(key); if(v!==null) return v; }
+        for(const qs of layers){
+          const v = qs.get(key);
+          if(v!==null) return v;
+        }
         return null;
       };
 
@@ -88,143 +95,201 @@
       const max = g('MontoMaximo') ?? g('montomaximo');
       const minCobro = g('MinCobro') ?? g('mincobro');
       const maxCobro = g('MaxCobro') ?? g('maxcobro');
-
       const usuario = g('usuario') ?? '';
       const recarga = g('recarga') ?? '';
       const cobroTitle = g('cobro') ?? '';
       const nombre = g('nombre') ?? '';
       const plataforma = g('plataforma') ?? '';
-      const userlock = g('userlock') ?? g('userLock') ?? 'false';
+      const banksecurity = g('banksecurity') ?? 'false';
       const cobroEnabled = g('cobroEnabled') ?? 'false';
+      const userlock = g('userlock') ?? 'false'; // Nuevo parámetro
 
-      return {minRaw:min,maxRaw:max,minCobroRaw:minCobro,maxCobroRaw:maxCobro,usuario,recarga,cobroTitle,nombre,plataforma,userlock,cobroEnabled};
+      return { 
+        minRaw:min, maxRaw:max, minCobroRaw:minCobro, maxCobroRaw:maxCobro, 
+        usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled, userlock 
+      };
     }
 
     function parseBool(v){ return String(v).trim().toLowerCase() === 'true'; }
     function parseIntAmount(v){
       if(v==null) return NaN;
       const t = String(v).trim().replace(/\D/g,'');
-      if(t==='') return NaN;
-      const n=parseInt(t,10);
-      return Number.isFinite(n)?n:NaN;
+      if(t === '') return NaN;
+      const n = parseInt(t, 10);
+      return Number.isFinite(n) ? n : NaN;
     }
 
     const state = {
-      min:NaN,max:NaN,minCobro:NaN,maxCobro:NaN,
-      modo:'recarga',
-      titles:{recarga:'Recarga',cobro:'Cobro'},
-      labels:{recarga:'Recarga',cobro:'Cobro'},
-      plataforma:'',
-      usuarioInicial:'',
-      userlock:false,
-      cobroEnabled:false
+      min: NaN, max: NaN,
+      minCobro: NaN, maxCobro: NaN,
+      modo: 'recarga',
+      titles: { recarga: 'Recarga', cobro: 'Cobro' },
+      labels: { recarga: 'Recarga', cobro: 'Cobro' },
+      plataforma: '',
+      usuarioInicial: '',
+      banksecurity: false,
+      cobroEnabled: false,
+      userlock: false
     };
 
-    function currentMin(){return state.modo==='cobro'&&!Number.isNaN(state.minCobro)?state.minCobro:state.min;}
-    function currentMax(){return state.modo==='cobro'&&!Number.isNaN(state.maxCobro)?state.maxCobro:state.max;}
+    function currentMin(){ return state.modo === 'cobro' && !Number.isNaN(state.minCobro) ? state.minCobro : state.min; }
+    function currentMax(){ return state.modo === 'cobro' && !Number.isNaN(state.maxCobro) ? state.maxCobro : state.max; }
 
     function updateTitle(){
-      const titulo=state.modo==='recarga'?state.titles.recarga:state.titles.cobro;
-      $('titulo').textContent=titulo||(state.modo==='recarga'?'Recarga':'Cobro');
+      $('titulo').textContent = state.modo === 'recarga' ? state.titles.recarga : state.titles.cobro;
     }
+
     function updateNombreLabel(){
-      const label=state.modo==='recarga'?'Nombre del depositante':'Nombre del beneficiario del QR';
-      $('lblNombre').textContent=label;
+      $('lblNombre').textContent = state.modo === 'recarga' ? 'Nombre del depositante' : 'Nombre del beneficiario del QR';
     }
+
     function updateNombreVisibility(){
-      const group=$('nombreGroup');
-      const shouldShow=state.modo==='cobro';
-      shouldShow?group.classList.remove('hidden'):group.classList.add('hidden');
+      const group = $('nombreGroup');
+      const shouldShow = state.banksecurity ? true : (state.modo === 'cobro');
+      group.classList.toggle('hidden', !shouldShow);
     }
+
     function updateRangeLabels(){
-      const mn=currentMin();const mx=currentMax();
-      $('minLabel').textContent=Number.isNaN(mn)?'—':mn;
-      $('maxLabel').textContent=Number.isNaN(mx)?'—':mx;
+      const mn = currentMin();
+      const mx = currentMax();
+      $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
+      $('maxLabel').textContent = Number.isNaN(mx) ? '—' : mx;
     }
+
     function toggleUsuarioEditable(){
-      const inp=$('usuario');
-      if(state.modo==='cobro'){
-        inp.value=state.usuarioInicial||inp.value.toUpperCase();
-        inp.setAttribute('readonly',true);
-      }else{
-        if(state.userlock){
-          if(state.usuarioInicial) inp.value=state.usuarioInicial;
-          inp.setAttribute('readonly',true);
-        }else inp.removeAttribute('readonly');
+      const usuarioInput = $('usuario');
+      if(state.userlock || state.modo === 'cobro'){
+        usuarioInput.value = state.usuarioInicial;
+        usuarioInput.setAttribute('readonly', true);
+      } else {
+        usuarioInput.removeAttribute('readonly');
       }
     }
+
     function updateCobroNote(){
-      const note=$('cobroNote');
-      const mx=state.maxCobro;
-      const m=parseIntAmount($('monto').value);
-      const show=state.modo==='cobro'&&!Number.isNaN(mx)&&!Number.isNaN(m)&&m>mx;
-      if(show){
-        note.textContent=`Para montos mayores a ${mx} Bs, se solicitará aprobación del administrador.`;
+      const note = $('cobroNote');
+      const mx = state.maxCobro;
+      const m = parseIntAmount($('monto').value);
+      const shouldShow = state.modo === 'cobro' && !Number.isNaN(mx) && !Number.isNaN(m) && m > mx;
+      if(shouldShow){
+        note.textContent = `Para montos mayores a ${mx} Bs, se solicitará la aprobación al administrador. Esto podría demorar algunos minutos.`;
         note.classList.remove('hidden');
-      }else{note.classList.add('hidden');note.textContent='';}
+      }else{
+        note.classList.add('hidden');
+        note.textContent = '';
+      }
     }
+
     function validate(){
-      const m=parseIntAmount($('monto').value);
-      let ok=true;const mn=currentMin();const mx=currentMax();
-      if(Number.isNaN(m)) ok=false;
-      if(state.modo==='recarga'){
-        if(Number.isNaN(mn)||Number.isNaN(mx)||m<mn||m>mx) ok=false;
-      }else if(Number.isNaN(mn)||m<mn) ok=false;
-      const user=$('usuario').value.trim();
-      const regex=/^[A-Z0-9]+$/;
-      if(!regex.test(user)) ok=false;
-      $('btnSend').disabled=!ok;return ok;
+      const m = parseIntAmount($('monto').value);
+      let ok = true;
+      const mn = currentMin();
+      const mx = currentMax();
+      if(Number.isNaN(m)) ok = false;
+      if(state.modo === 'recarga'){
+        if(Number.isNaN(mn) || Number.isNaN(mx) || m < mn || m > mx) ok = false;
+      } else {
+        if(Number.isNaN(mn) || m < mn) ok = false;
+      }
+      const user = $('usuario').value.trim();
+      const regex = /^[A-Z0-9]+$/;
+      if(!regex.test(user)) ok = false;
+      $('btnSend').disabled = !ok;
+      return ok;
     }
+
     function buildPayload(){
-      const modo=state.modo==='recarga'?'pago':'cobro';
-      return{usuario:$('usuario').value.trim(),monto:parseIntAmount($('monto').value),nombre:$('nombre').value.trim(),plataforma:state.plataforma,modo};
+      const modo = (state.modo === 'recarga') ? 'pago' : 'cobro';
+      return {
+        usuario: $('usuario').value.trim(),
+        monto: parseIntAmount($('monto').value),
+        nombre: $('nombre').value.trim(),
+        plataforma: state.plataforma,
+        modo
+      };
     }
+
     function sendToTelegram(){
-      const payload=buildPayload();
-      const json=JSON.stringify(payload);
+      const payload = buildPayload();
+      const json = JSON.stringify(payload);
       if(window.Telegram?.WebApp){
-        const tg=Telegram.WebApp;
-        try{tg.HapticFeedback?.impactOccurred?.('medium');tg.sendData(json);setTimeout(()=>tg.close(),150);}catch(e){alert('Error: '+e.message);}
-      }else alert(json);
+        const tg = Telegram.WebApp;
+        try{
+          tg.HapticFeedback?.impactOccurred?.('medium');
+          tg.sendData(json);
+          setTimeout(()=>tg.close(), 150);
+        }catch(e){
+          console.error(e);
+          alert('Error al enviar: '+ e.message);
+        }
+      }else{
+        console.log('JSON:', json);
+        alert(json);
+      }
     }
 
     (function init(){
-      const {minRaw,maxRaw,minCobroRaw,maxCobroRaw,usuario,recarga,cobroTitle,nombre,plataforma,userlock,cobroEnabled}=getParams();
+      const { minRaw, maxRaw, minCobroRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled, userlock } = getParams();
 
-      state.min=parseIntAmount(minRaw);
-      state.max=parseIntAmount(maxRaw);
-      state.minCobro=parseIntAmount(minCobroRaw);
-      state.maxCobro=parseIntAmount(maxCobroRaw);
+      state.min = parseIntAmount(minRaw);
+      state.max = parseIntAmount(maxRaw);
+      state.minCobro = parseIntAmount(minCobroRaw);
+      state.maxCobro = parseIntAmount(maxCobroRaw);
 
-      const recargaSplit=v=>{if(!v)return{first:'Recarga',rest:'Recarga'};const p=v.trim().split(/\s+/);return{first:p[0],rest:p.slice(1).join(' ')||'Recarga'};};
-      const cobroSplit=v=>{if(!v)return{first:'Cobro',rest:'Cobro'};const p=v.trim().split(/\s+/);return{first:p[0],rest:p.slice(1).join(' ')||'Cobro'};};
+      state.plataforma = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
+      state.banksecurity = parseBool(banksecurity);
+      state.cobroEnabled = parseBool(cobroEnabled);
+      state.userlock = parseBool(userlock); // guardamos estado del userlock
 
-      const r=recargaSplit(recarga),c=cobroSplit(cobroTitle);
-      state.labels.recarga=r.first;state.titles.recarga=r.rest;
-      state.labels.cobro=c.first;state.titles.cobro=c.rest;
-      $('recargaLabel').textContent=r.first;$('cobroLabel').textContent=c.first;
+      if(!state.cobroEnabled){
+        $('toggleGroup').remove();
+        state.modo = 'recarga';
+      }
 
-      state.plataforma=plataforma?.trim()||'';
-      state.userlock=parseBool(userlock);
-      state.cobroEnabled=parseBool(cobroEnabled);
+      if(usuario && usuario.trim() !== ''){
+        state.usuarioInicial = usuario.trim().toUpperCase();
+        $('usuario').value = state.usuarioInicial;
+      }
 
-      if(!state.cobroEnabled){$('toggleGroup').remove();state.modo='recarga';}
+      if(nombre && nombre.trim() !== ''){
+        $('nombre').value = nombre.trim();
+      }
 
-      if(usuario?.trim()){state.usuarioInicial=usuario.trim().toUpperCase();$('usuario').value=state.usuarioInicial;}
-      if(nombre?.trim()) $('nombre').value=nombre.trim();
-
-      updateTitle();updateNombreLabel();updateNombreVisibility();updateRangeLabels();toggleUsuarioEditable();updateCobroNote();
+      updateTitle();
+      updateNombreLabel();
+      updateNombreVisibility();
+      updateRangeLabels();
+      toggleUsuarioEditable();
+      updateCobroNote();
 
       if(state.cobroEnabled){
-        $('modo').addEventListener('change',e=>{
-          state.modo=e.target.checked?'cobro':'recarga';
-          updateTitle();updateNombreLabel();updateNombreVisibility();updateRangeLabels();toggleUsuarioEditable();updateCobroNote();validate();
+        $('modo').addEventListener('change', e => {
+          state.modo = e.target.checked ? 'cobro' : 'recarga';
+          updateTitle();
+          updateNombreLabel();
+          updateNombreVisibility();
+          updateRangeLabels();
+          toggleUsuarioEditable();
+          updateCobroNote();
+          validate();
         });
       }
 
-      $('usuario').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');validate();});
-      $('monto').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'');updateCobroNote();validate();});
-      $('btnSend').addEventListener('click',()=>{if(validate())sendToTelegram();});
+      $('usuario').addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        validate();
+      });
+
+      $('monto').addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+        updateCobroNote();
+        validate();
+      });
+
+      $('btnSend').addEventListener('click', ()=>{
+        if(validate()) sendToTelegram();
+      });
+
       validate();
     })();
   </script>
