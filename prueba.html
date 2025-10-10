@@ -2,262 +2,349 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Flujo Paso a Paso</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniApp • Usuario y Monto</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f4f6f9;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+    :root{
+      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --warning:#d84a4a; --note:#8a6f00;
     }
-
-    .container {
-      width: 100%;
-      max-width: 500px;
-      background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .step {
-      display: none;
-    }
-
-    .step.active {
-      display: block;
-    }
-
-    .buttons {
-      margin-top: 20px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      background-color: #007bff;
-      color: #fff;
-      cursor: pointer;
-      font-size: 16px;
-    }
-
-    button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-
-    .platforms {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .platforms button {
-      background-color: #17a2b8;
-    }
-
-    input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    .progress-container {
-      height: 10px;
-      background: #e0e0e0;
-      border-radius: 6px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: #28a745;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .summary {
-      font-size: 18px;
-      line-height: 1.6;
-    }
-
-    .confirm-buttons {
-      display: flex;
-      gap: 15px;
-      margin-top: 20px;
-      justify-content: center;
-    }
-
-    .confirm-buttons button {
-      background-color: #28a745;
-    }
-
-    .cancel-btn {
-      background-color: #dc3545 !important;
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
+    .container{width:100%;max-width:480px;background:var(--card);padding:24px 20px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+    h2{margin:0 0 14px;text-align:center;color:var(--primary)}
+    .toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0 16px}
+    .toggle span{font-weight:600;color:#2f3b48}
+    .switch{position:relative;display:inline-block;width:56px;height:30px}
+    .switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;cursor:pointer;inset:0;background:#dfe6ee;border-radius:999px;transition:.2s}
+    .slider:before{content:"";position:absolute;height:22px;width:22px;left:4px;top:4px;background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:.2s}
+    .switch input:checked + .slider{background:var(--primary)}
+    .switch input:checked + .slider:before{transform:translateX(26px)}
+    label{display:block;font-weight:600;color:#2f3b48;margin:12px 0 6px}
+    input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;outline:none}
+    input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+    .upper{ text-transform:uppercase }
+    .normalcase{ text-transform:none }
+    .warning{font-size:0.95rem;color:var(--warning);margin-top:6px}
+    .note{font-size:0.85rem;color:var(--note);margin-top:6px}
+    .range{display:flex;gap:10px;font-size:.85rem;color:#4b5a6a;justify-content:space-between;margin-top:6px}
+    .row{display:flex;gap:10px;margin-top:14px}
+    .btn{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .hidden{display:none}
+    /* Caja de alerta grande para bankSecurity */
+    .alert{
+      display:flex;gap:10px;align-items:flex-start;
+      border:1px solid #f0c2c2;background:#ffecec;color:#7b1c1c;
+      padding:12px 14px;border-radius:12px;margin:10px 0 16px;font-weight:600;line-height:1.35;
+      white-space:pre-line;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="progress-container">
-      <div class="progress-bar" id="progressBar"></div>
+    <h2 id="titulo">Recarga</h2>
+
+    <!-- Aviso bankSecurity -->
+    <div id="bankAlert" class="alert hidden">
+      ⚠️ Aviso ⚠️
+      El QR debe pagarse con tu cuenta registrada 📝.
+      Si no coincide, no se acredita 🚫
     </div>
 
-    <!-- Paso 1 -->
-    <div class="step active" id="step1">
-      <h2>1. Seleccione plataforma de Origen</h2>
-      <div class="platforms">
-        <button onclick="selectPlatform('Apueston', 'origen')">Apueston</button>
-        <button onclick="selectPlatform('Metabet', 'origen')">Metabet</button>
-        <button onclick="selectPlatform('PPPoker SOL', 'origen')">PPPoker SOL</button>
-        <button onclick="selectPlatform('PPPoker BOL', 'origen')">PPPoker BOL</button>
-      </div>
+    <div id="toggleGroup" class="toggle" aria-label="Seleccionar tipo de operación">
+      <span id="recargaLabel">Recarga</span>
+      <label class="switch">
+        <input id="modo" type="checkbox" aria-label="Alternar entre Recarga y Cobro" />
+        <span class="slider"></span>
+      </label>
+      <span id="cobroLabel">Cobro</span>
     </div>
 
-    <!-- Paso 2 -->
-    <div class="step" id="step2">
-      <h2>2. Seleccione plataforma de Destino</h2>
-      <div class="platforms">
-        <button onclick="selectPlatform('Apueston', 'destino')">Apueston</button>
-        <button onclick="selectPlatform('Metabet', 'destino')">Metabet</button>
-        <button onclick="selectPlatform('PPPoker SOL', 'destino')">PPPoker SOL</button>
-        <button onclick="selectPlatform('PPPoker BOL', 'destino')">PPPoker BOL</button>
-      </div>
+    <label for="usuario">Usuario</label>
+    <input id="usuario" class="upper" type="text" placeholder="INGRESE USUARIO" maxlength="32" />
+
+    <div id="nombreGroup">
+      <label id="lblNombre" for="nombre">Nombre del depositante</label>
+      <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
     </div>
 
-    <!-- Paso 3 -->
-    <div class="step" id="step3">
-      <h2>3. Ingrese el usuario que recibirá el crédito</h2>
-      <input type="text" id="userInput" placeholder="Ej: @usuario123" />
+    <label for="monto">Monto</label>
+    <input id="monto" type="text" inputmode="numeric" placeholder="0" />
+    <div class="range">
+      <span>Mín: <strong id="minLabel">—</strong></span>
+      <span>Máx: <strong id="maxLabel">—</strong></span>
     </div>
+    <div id="cobroNote" class="note hidden"></div>
 
-    <!-- Paso 4 -->
-    <div class="step" id="step4">
-      <h2>4. Ingrese el monto a pasar</h2>
-      <input type="number" id="amountInput" placeholder="Monto en USD" />
-    </div>
-
-    <!-- Paso 5: Confirmación -->
-    <div class="step" id="step5">
-      <h2>Confirmación</h2>
-      <div class="summary" id="summaryText"></div>
-      <div class="confirm-buttons">
-        <button onclick="convertir()">Convertir</button>
-        <button class="cancel-btn" onclick="cancelar()">Cancelar</button>
-      </div>
-    </div>
-
-    <div class="buttons">
-      <button id="prevBtn" onclick="changeStep(-1)" disabled>Anterior</button>
-      <button id="nextBtn" onclick="changeStep(1)">Siguiente</button>
+    <div class="row">
+      <button id="btnSend" class="btn" disabled>Enviar</button>
     </div>
   </div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    const $ = (id)=>document.getElementById(id);
 
-    let currentStep = 0;
-    const steps = document.querySelectorAll('.step');
-    const progressBar = document.getElementById('progressBar');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
+    // Lee parámetros desde múltiples orígenes (search, hash y Telegram start_param)
+    function getParams(){
+      const layers = [];
+      try { layers.push(new URLSearchParams(location.search)); } catch {}
+      try { layers.push(new URLSearchParams(location.hash?.startsWith('#')? location.hash.slice(1): '')); } catch {}
+      try { layers.push(new URLSearchParams(window.Telegram?.WebApp?.initDataUnsafe?.start_param || '')); } catch {}
 
-    let origen = '';
-    let destino = '';
-
-    function updateProgress() {
-      const percentage = (currentStep / (steps.length - 1)) * 100;
-      progressBar.style.width = percentage + '%';
-    }
-
-    function showStep(index) {
-      steps.forEach((step, i) => {
-        step.classList.toggle('active', i === index);
-      });
-
-      prevBtn.disabled = index === 0;
-      nextBtn.style.display = index === steps.length - 1 ? 'none' : 'inline-block';
-
-      updateProgress();
-
-      if (index === 4) {
-        const usuario = document.getElementById('userInput').value;
-        const monto = parseFloat(document.getElementById('amountInput').value).toFixed(2);
-        document.getElementById('summaryText').innerHTML = `
-          <p><strong>Origen:</strong> ${origen}</p>
-          <p><strong>Destino:</strong> ${destino}</p>
-          <p><strong>Usuario:</strong> ${usuario}</p>
-          <p><strong>Monto:</strong> $${monto}</p>
-        `;
-      }
-    }
-
-    function changeStep(direction) {
-      if (direction === 1) {
-        if (currentStep === 2 && !document.getElementById('userInput').value.trim()) {
-          alert('Por favor ingresa el usuario de destino.');
-          return;
-        }
-        if (currentStep === 3 && !document.getElementById('amountInput').value.trim()) {
-          alert('Por favor ingresa el monto.');
-          return;
-        }
-      }
-
-      currentStep += direction;
-      if (currentStep >= steps.length) return;
-      showStep(currentStep);
-    }
-
-    function selectPlatform(value, tipo) {
-      if (tipo === 'origen') {
-        origen = value;
-      } else {
-        destino = value;
-      }
-      changeStep(1);
-    }
-
-    function convertir() {
-      const usuario = document.getElementById('userInput').value.trim();
-      const monto = parseFloat(document.getElementById('amountInput').value).toFixed(2);
-
-      const datos = {
-        origen,
-        destino,
-        usuario,
-        monto
+      const g = (key)=>{
+        for(const qs of layers){ const v = qs.get(key); if(v!==null) return v; }
+        return null;
       };
 
-      tg.sendData(JSON.stringify(datos));
+      // Recarga min/max (compatibilidad con mayúsculas/minúsculas)
+      const min = g('montoMinimo') ?? g('montominimo');
+      const max = g('MontoMaximo') ?? g('montomaximo');
+      // Cobro min/max (compatibilidad con legado)
+      const minCobro = g('MinCobro') ?? g('mincobro');
+      const maxCobro = g('MaxCobro') ?? g('maxcobro');
+
+      const usuario      = g('usuario') ?? '';
+      const recarga      = g('recarga') ?? '';
+      const cobroTitle   = g('cobro') ?? '';
+      const nombre       = g('nombre') ?? '';
+      const plataforma   = g('plataforma') ?? '';
+      // Soporta banksecurity/bankSecurity
+      const banksecurity = g('banksecurity') ?? g('bankSecurity') ?? 'false';
+      // Nuevo: userlock/userLock
+      const userlock     = g('userlock') ?? g('userLock') ?? 'false';
+      const cobroEnabled = g('cobroEnabled') ?? g('cobroenabled') ?? 'false';
+
+      return {
+        minRaw:min, maxRaw:max, minCobroRaw:minCobro, maxCobroRaw:maxCobro,
+        usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, userlock, cobroEnabled
+      };
     }
 
-    function cancelar() {
-      if (confirm("¿Deseas cancelar y volver al inicio?")) {
-        origen = '';
-        destino = '';
-        document.getElementById('userInput').value = '';
-        document.getElementById('amountInput').value = '';
-        currentStep = 0;
-        showStep(currentStep);
+    function parseBool(v){ return String(v).trim().toLowerCase() === 'true'; }
+
+    function parseIntAmount(v){
+      if(v==null) return NaN;
+      const t = String(v).trim().replace(/\D/g,'');
+      if(t === '') return NaN;
+      const n = parseInt(t, 10);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    const state = {
+      // Recarga
+      min: NaN,
+      max: NaN,
+      // Cobro
+      minCobro: NaN,
+      maxCobro: NaN,
+      // UI
+      modo: 'recarga',
+      titles: { recarga: 'Recarga', cobro: 'Cobro' },
+      labels: { recarga: 'Recarga', cobro: 'Cobro' },
+      plataforma: '',
+      usuarioInicial: '',
+      banksecurity: false,
+      userlock: false,
+      cobroEnabled: false
+    };
+
+    function currentMin(){
+      return state.modo === 'cobro' && !Number.isNaN(state.minCobro) ? state.minCobro : state.min;
+    }
+    function currentMax(){
+      return state.modo === 'cobro' && !Number.isNaN(state.maxCobro) ? state.maxCobro : state.max;
+    }
+
+    function updateTitle(){
+      const titulo = state.modo === 'recarga' ? state.titles.recarga : state.titles.cobro;
+      $('titulo').textContent = titulo || (state.modo === 'recarga' ? 'Recarga' : 'Cobro');
+    }
+
+    function updateNombreLabel(){
+      const label = state.modo === 'recarga' ? 'Nombre del depositante' : 'Nombre del beneficiario del QR';
+      $('lblNombre').textContent = label;
+    }
+
+    function updateNombreVisibility(){
+      const group = $('nombreGroup');
+      const shouldShow = state.banksecurity ? true : (state.modo === 'cobro');
+      if(shouldShow){ group.classList.remove('hidden'); } else { group.classList.add('hidden'); }
+    }
+
+    function updateBankAlert(){
+      const alert = $('bankAlert');
+      if(state.banksecurity){
+        alert.classList.remove('hidden');
+        // Mensaje exacto solicitado con saltos de línea
+        alert.innerText = "⚠️ Aviso ⚠️\nEl QR debe pagarse con tu cuenta registrada 📝.\nSi no coincide, no se acredita 🚫";
+      }else{
+        alert.classList.add('hidden');
+        alert.innerText = "";
       }
     }
 
-    showStep(currentStep);
+    function updateRangeLabels(){
+      const mn = currentMin();
+      const mx = currentMax();
+      $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
+      $('maxLabel').textContent = Number.isNaN(mx) ? '—' : mx;
+    }
+
+    function toggleUsuarioEditable(){
+      const inp = $('usuario');
+      if(state.modo === 'cobro'){
+        // Siempre bloqueado en cobro
+        inp.value = state.usuarioInicial || inp.value.toUpperCase();
+        inp.setAttribute('readonly', true);
+      } else {
+        // Recarga: respeta userlock
+        if(state.userlock){
+          if(state.usuarioInicial) inp.value = state.usuarioInicial;
+          inp.setAttribute('readonly', true);
+        } else {
+          inp.removeAttribute('readonly');
+        }
+      }
+    }
+
+    function updateCobroNote(){
+      const note = $('cobroNote');
+      const mx = state.maxCobro; // mensaje usa el MaximoPago de COBRO
+      const m = parseIntAmount($('monto').value);
+      const shouldShow = state.modo === 'cobro' && !Number.isNaN(mx) && !Number.isNaN(m) && m > mx;
+      if(shouldShow){
+        note.textContent = `Para montos mayores a ${mx} Bs, se solicitará la aprobación al administrador. Esto podría demorar algunos minutos.`;
+        note.classList.remove('hidden');
+      }else{
+        note.classList.add('hidden');
+        note.textContent = '';
+      }
+    }
+
+    function validate(){
+      const m = parseIntAmount($('monto').value);
+      let ok = true;
+      const mn = currentMin();
+      const mx = currentMax();
+
+      if(Number.isNaN(m)) ok = false;
+      if(state.modo === 'recarga'){
+        if(Number.isNaN(mn) || Number.isNaN(mx) || m < mn || m > mx) ok = false;
+      } else {
+        if(Number.isNaN(mn) || m < mn) ok = false; // en cobro se permite > maxCobro
+      }
+
+      const user = $('usuario').value.trim();
+      const regex = /^[A-Z0-9]+$/;
+      if(!regex.test(user)) ok = false;
+
+      $('btnSend').disabled = !ok;
+      return ok;
+    }
+
+    function buildPayload(){
+      const modo = (state.modo === 'recarga') ? 'pago' : 'cobro';
+      return {
+        usuario: $('usuario').value.trim(),
+        monto: parseIntAmount($('monto').value),
+        nombre: $('nombre').value.trim(),
+        plataforma: state.plataforma,
+        modo
+      };
+    }
+
+    function sendToTelegram(){
+      const payload = buildPayload();
+      const json = JSON.stringify(payload);
+      if(window.Telegram?.WebApp){
+        const tg = Telegram.WebApp;
+        try{
+          tg.HapticFeedback?.impactOccurred?.('medium');
+          tg.sendData(json);
+          setTimeout(()=>tg.close(), 150);
+        }catch(e){ console.error(e); alert('Error al enviar: '+ e.message); }
+      }else{
+        console.log('JSON:', json);
+        alert(json);
+      }
+    }
+
+    (function init(){
+      const {
+        minRaw, maxRaw, minCobroRaw, maxCobroRaw,
+        usuario, recarga, cobroTitle, nombre, plataforma,
+        banksecurity, userlock, cobroEnabled
+      } = getParams();
+
+      // Rango Recarga
+      state.min = parseIntAmount(minRaw);
+      state.max = parseIntAmount(maxRaw);
+      // Rango Cobro
+      state.minCobro = parseIntAmount(minCobroRaw);
+      state.maxCobro = parseIntAmount(maxCobroRaw);
+
+      // Etiquetas y títulos desde primera palabra/resto
+      const recargaSplit = (function(v){ if(!v) return {first:'Recarga',rest:'Recarga'}; const p=v.trim().split(/\s+/); return { first:p[0]||'Recarga', rest:(p.slice(1).join(' ')||'Recarga') }; })(recarga);
+      const cobroSplit   = (function(v){ if(!v) return {first:'Cobro',rest:'Cobro'}; const p=v.trim().split(/\s+/); return { first:p[0]||'Cobro',   rest:(p.slice(1).join(' ')||'Cobro')   }; })(cobroTitle);
+      state.labels.recarga = recargaSplit.first; state.titles.recarga = recargaSplit.rest;
+      state.labels.cobro   = cobroSplit.first;   state.titles.cobro   = cobroSplit.rest;
+      $('recargaLabel').textContent = state.labels.recarga;
+      $('cobroLabel').textContent   = state.labels.cobro;
+
+      state.plataforma   = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
+      state.banksecurity = parseBool(banksecurity); // default false si no llega
+      state.userlock     = parseBool(userlock);     // default false si no llega
+      state.cobroEnabled = parseBool(cobroEnabled);
+
+      if(!state.cobroEnabled){
+        $('toggleGroup').remove();
+        state.modo = 'recarga';
+      }
+
+      if(usuario && usuario.trim() !== ''){
+        state.usuarioInicial = usuario.trim().toUpperCase();
+        $('usuario').value = state.usuarioInicial;
+      }
+      if(nombre && nombre.trim() !== ''){ $('nombre').value = nombre.trim(); }
+
+      updateTitle();
+      updateNombreLabel();
+      updateNombreVisibility();
+      updateBankAlert();
+      updateRangeLabels();
+      toggleUsuarioEditable();
+      updateCobroNote();
+
+      if(state.cobroEnabled){
+        $('modo').addEventListener('change', e => {
+          state.modo = e.target.checked ? 'cobro' : 'recarga';
+          updateTitle();
+          updateNombreLabel();
+          updateNombreVisibility();
+          updateBankAlert();
+          updateRangeLabels();
+          toggleUsuarioEditable();
+          updateCobroNote();
+          validate();
+        });
+      }
+
+      $('usuario').addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        validate();
+      });
+      $('monto').addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+        updateCobroNote();
+        validate();
+      });
+      $('btnSend').addEventListener('click', ()=>{ if(validate()) sendToTelegram(); });
+
+      validate();
+    })();
   </script>
 </body>
 </html>
