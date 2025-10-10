@@ -76,7 +76,7 @@
   <script>
     const $ = (id)=>document.getElementById(id);
 
-    // Leer parámetros desde URL, hash y Telegram start_param
+    // --- Obtener parámetros ---
     function getParams(){
       const layers = [];
       try { layers.push(new URLSearchParams(location.search)); } catch {}
@@ -91,22 +91,20 @@
         return null;
       };
 
-      const min = g('montoMinimo') ?? g('montominimo');
-      const max = g('MontoMaximo') ?? g('montomaximo');
-      const minCobro = g('MinCobro') ?? g('mincobro');
-      const maxCobro = g('MaxCobro') ?? g('maxcobro');
-      const usuario = g('usuario') ?? '';
-      const recarga = g('recarga') ?? '';
-      const cobroTitle = g('cobro') ?? '';
-      const nombre = g('nombre') ?? '';
-      const plataforma = g('plataforma') ?? '';
-      const banksecurity = g('banksecurity') ?? 'false';
-      const cobroEnabled = g('cobroEnabled') ?? 'false';
-      const userlock = g('userlock') ?? 'false'; // Nuevo parámetro
-
       return { 
-        minRaw:min, maxRaw:max, minCobroRaw:minCobro, maxCobroRaw:maxCobro, 
-        usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled, userlock 
+        minRaw: g('montoMinimo') ?? g('montominimo'),
+        maxRaw: g('MontoMaximo') ?? g('montomaximo'),
+        minCobroRaw: g('MinCobro') ?? g('mincobro'),
+        maxCobroRaw: g('MaxCobro') ?? g('maxcobro'),
+        usuario: g('usuario') ?? '',
+        recarga: g('recarga') ?? '',
+        cobroTitle: g('cobro') ?? '',
+        nombre: g('nombre') ?? '',
+        plataforma: g('plataforma') ?? '',
+        banksecurityCobro: g('banksecurityCobro') ?? 'false',
+        banksecurityRecarga: g('banksecurityRecarga') ?? 'false',
+        cobroEnabled: g('cobroEnabled') ?? 'false',
+        userlock: g('userlock') ?? 'false'
       };
     }
 
@@ -127,7 +125,8 @@
       labels: { recarga: 'Recarga', cobro: 'Cobro' },
       plataforma: '',
       usuarioInicial: '',
-      banksecurity: false,
+      banksecurityCobro: false,
+      banksecurityRecarga: false,
       cobroEnabled: false,
       userlock: false
     };
@@ -145,7 +144,9 @@
 
     function updateNombreVisibility(){
       const group = $('nombreGroup');
-      const shouldShow = state.banksecurity ? true : (state.modo === 'cobro');
+      const shouldShow =
+        (state.modo === 'recarga' && state.banksecurityRecarga) ||
+        (state.modo === 'cobro' && state.banksecurityCobro);
       group.classList.toggle('hidden', !shouldShow);
     }
 
@@ -229,7 +230,7 @@
     }
 
     (function init(){
-      const { minRaw, maxRaw, minCobroRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurity, cobroEnabled, userlock } = getParams();
+      const { minRaw, maxRaw, minCobroRaw, maxCobroRaw, usuario, recarga, cobroTitle, nombre, plataforma, banksecurityCobro, banksecurityRecarga, cobroEnabled, userlock } = getParams();
 
       state.min = parseIntAmount(minRaw);
       state.max = parseIntAmount(maxRaw);
@@ -237,9 +238,10 @@
       state.maxCobro = parseIntAmount(maxCobroRaw);
 
       state.plataforma = (plataforma && plataforma.trim()) ? plataforma.trim() : '';
-      state.banksecurity = parseBool(banksecurity);
+      state.banksecurityCobro = parseBool(banksecurityCobro);
+      state.banksecurityRecarga = parseBool(banksecurityRecarga);
       state.cobroEnabled = parseBool(cobroEnabled);
-      state.userlock = parseBool(userlock); // guardamos estado del userlock
+      state.userlock = parseBool(userlock);
 
       if(!state.cobroEnabled){
         $('toggleGroup').remove();
