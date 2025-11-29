@@ -41,13 +41,22 @@
   .hidden{display:none!important}
 
   /* Modal */
-  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(3px); z-index:10; align-items:center; justify-content:center}
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.4);
+    backdrop-filter:blur(3px); z-index:10; align-items:center; justify-content:center
+  }
   .modal-overlay.show{display:flex}
-  .modal{background:#fff; width:min(92%,380px); padding:22px 18px; border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .modal{
+    background:#fff; width:min(92%,380px); padding:22px 18px;
+    border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,.2)
+  }
   .modal h3{margin:0; color:var(--primary)}
   .modal p{white-space:pre-line; margin:14px 0; color:#333}
   .button-group{display:flex; gap:12px}
-  .button-group button{flex:1; border:0; padding:10px; font-weight:600; border-radius:10px; cursor:pointer}
+  .button-group button{
+    flex:1; border:0; padding:10px; font-weight:600;
+    border-radius:10px; cursor:pointer
+  }
   .button-group button:first-child{background:var(--primary); color:#fff}
   .button-group button:last-child{background:#e0e6ed; color:#333}
 </style>
@@ -84,11 +93,11 @@
       <div id="telefonoMsg" class="error">Número inválido para el país seleccionado.</div>
     </div>
 
-    <!-- Referidor username (condicional) -->
+    <!-- Referidor (condicional, siempre con opción "Ninguno") -->
     <div class="input-group hidden" id="grpReferidor">
-      <label for="referidor">Referidor (opcional — usuario de Telegram, sin @)</label>
-      <input id="referidor" type="text" placeholder="Opcional — ej. juan_perez" inputmode="latin" autocapitalize="off" autocomplete="off" />
-      <div id="referidorMsg" class="error">Opcional: si lo escribes, usa 5–32 caracteres [a-z, 0-9, _], sin @.</div>
+      <label for="referidorSelect">Referidor</label>
+      <select id="referidorSelect"></select>
+      <div id="referidorMsg" class="error">Selecciona un referidor de la lista.</div>
     </div>
 
     <button id="registrarBtn" disabled>Registrar</button>
@@ -108,7 +117,8 @@
 
 <script>
   // Telegram WebApp init
-  const tg = window.Telegram?.WebApp; if (tg){ tg.ready(); tg.expand(); }
+  const tg = window.Telegram?.WebApp; 
+  if (tg){ tg.ready(); tg.expand(); }
 
   // Helpers DOM
   const $ = sel => document.querySelector(sel);
@@ -120,7 +130,7 @@
   const countryCode = $('#countryCode');
   const telefono = $('#telefono');
   const telefonoMsg = $('#telefonoMsg');
-  const referidor = $('#referidor');
+  const referidorSelect = $('#referidorSelect');
   const referidorMsg = $('#referidorMsg');
   const btn = $('#registrarBtn');
   const modalOverlay = $('#modalOverlay');
@@ -128,10 +138,11 @@
   const confirmYes = $('#confirmYes');
   const confirmNo = $('#confirmNo');
 
-  // URL params -> nombreBot (título visible para el usuario), solicitarTelefono, SolicitarReferidor
+  // URL params -> nombreBot, solicitarTelefono, solicitarReferidor, referidores
   const params = new URLSearchParams(location.search);
   const getParam = (k) => params.get(k);
-  // boolish parser: true if '1','true','yes','si' (case-insensitive). False if '0','false','no','', null
+
+  // boolish parser
   function toBoolish(v){
     if (v == null) return false;
     const s = String(v).trim().toLowerCase();
@@ -139,10 +150,32 @@
     return ['1','true','sí','si','yes','y'].includes(s);
   }
 
-  // Read params (accept both exact keys and common variants)
+  // Read params
   const tituloParam = getParam('nombreBot') || getParam('NombreBot') || '';
   const solicitarTelefono = toBoolish(getParam('solicitarTelefono') ?? getParam('SolicitarTelefono'));
   const solicitarReferidor = toBoolish(getParam('SolicitarReferidor') ?? getParam('solicitarReferidor'));
+
+  // Lista de referidores (puede venir vacía)
+  const referidoresParam = getParam('referidores') || getParam('Referidores') || '';
+  let referidoresLista = [];
+
+  if (referidoresParam) {
+    // 1) Intentar parsear como JSON: ["user1","user2"]
+    try {
+      const parsed = JSON.parse(referidoresParam);
+      if (Array.isArray(parsed)) {
+        referidoresLista = parsed
+          .map(x => String(x).trim())
+          .filter(x => x.length > 0);
+      }
+    } catch {
+      // 2) Si no es JSON, tomar como CSV: user1,user2,user3
+      referidoresLista = referidoresParam
+        .split(',')
+        .map(x => decodeURIComponent(x.trim()))
+        .filter(x => x.length > 0);
+    }
+  }
 
   if (tituloParam) titulo.textContent = tituloParam;
 
@@ -151,18 +184,44 @@
   setVisible(grpTelefono, solicitarTelefono);
   setVisible(grpReferidor, solicitarReferidor);
 
+  // Inicializar select de referidores (siempre agrega "Ninguno")
+  function initReferidorSelect() {
+    if (!solicitarReferidor || grpReferidor.classList.contains('hidden') || !referidorSelect) return;
+
+    referidorSelect.innerHTML = '';
+
+    // Opción "Ninguno" SIEMPRE presente
+    const optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = 'Ninguno';
+    referidorSelect.appendChild(optNone);
+
+    // Si hay referidores → agregarlos
+    if (referidoresLista && referidoresLista.length > 0) {
+      referidoresLista.forEach(ref => {
+        const opt = document.createElement('option');
+        opt.value = ref;
+        opt.textContent = ref;
+        referidorSelect.appendChild(opt);
+      });
+    }
+
+    // Seleccionar por defecto "Ninguno"
+    referidorSelect.value = '';
+  }
+
+  initReferidorSelect();
+
   // Validators
   const isValidNombre = (v) => {
     const s = v.trim();
     return s.length >= 4 && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' ]+$/.test(s);
   };
-  const sanitizeUsername = (v) => v.trim().replace(/^@+/, '');
-  const isValidUsername = (v) => /^[A-Za-z0-9_]{5,32}$/.test(sanitizeUsername(v));
 
   const onlyDigits = (v) => v.replace(/\D/g, '');
   function isValidPhone(country, localNumber) {
     const digits = onlyDigits(localNumber);
-    if (country === '+591') return /^[2-7]\d{7}$/.test(digits); // Bolivia: 8 dígitos (2–7 + 7)
+    if (country === '+591') return /^[2-7]\d{7}$/.test(digits); // Bolivia: 8 dígitos
     return /^\d{6,14}$/.test(digits);                           // genérico
   }
 
@@ -181,22 +240,27 @@
 
   function validateAll(){
     let ok = true;
-    const okNombre = isValidNombre(nombre.value);
-    setFieldState(nombre, nombreMsg, okNombre); ok = ok && okNombre;
 
+    // Nombre
+    const okNombre = isValidNombre(nombre.value);
+    setFieldState(nombre, nombreMsg, okNombre); 
+    ok = ok && okNombre;
+
+    // Teléfono
     if (solicitarTelefono && !grpTelefono.classList.contains('hidden')) {
       const okTel = isValidPhone(countryCode.value, telefono.value);
-      setFieldState(telefono, telefonoMsg, okTel); ok = ok && okTel;
+      setFieldState(telefono, telefonoMsg, okTel); 
+      ok = ok && okTel;
     } else {
       setFieldState(telefono, telefonoMsg, true);
     }
 
+    // Referidor (select): siempre válido porque "Ninguno" es opción válida
     if (solicitarReferidor && !grpReferidor.classList.contains('hidden')) {
-      const valRef = sanitizeUsername(referidor.value);
-      const okRef = (valRef === '') || isValidUsername(valRef);
-      setFieldState(referidor, referidorMsg, okRef); ok = ok && okRef;
+      setFieldState(referidorSelect, referidorMsg, true);
+      ok = ok && true;
     } else {
-      setFieldState(referidor, referidorMsg, true);
+      setFieldState(referidorSelect, referidorMsg, true);
     }
 
     btn.disabled = !ok;
@@ -204,41 +268,58 @@
   }
 
   ['input','blur','change'].forEach(evt => {
-    [nombre, telefono, countryCode, referidor].forEach(el => el && el.addEventListener(evt, validateAll));
+    [nombre, telefono, countryCode, referidorSelect].forEach(el => el && el.addEventListener(evt, validateAll));
   });
 
   // Modal helpers
-  const openModal = (txt) => { summaryText.textContent = txt; modalOverlay.classList.add('show'); modalOverlay.setAttribute('aria-hidden','false'); };
-  const closeModal = () => { modalOverlay.classList.remove('show'); modalOverlay.setAttribute('aria-hidden','true'); };
+  const openModal = (txt) => {
+    summaryText.textContent = txt; 
+    modalOverlay.classList.add('show'); 
+    modalOverlay.setAttribute('aria-hidden','false');
+  };
+  const closeModal = () => {
+    modalOverlay.classList.remove('show'); 
+    modalOverlay.setAttribute('aria-hidden','true');
+  };
   confirmNo.addEventListener('click', closeModal);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
   // Click registrar -> resumen y confirmación
   btn.addEventListener('click', () => {
     if (!validateAll()) return;
+
     const lines = [ `Nombre: ${nombre.value.trim()}` ];
+
     if (solicitarTelefono && !grpTelefono.classList.contains('hidden')) {
       lines.push(`Teléfono: ${countryCode.value + onlyDigits(telefono.value)}`);
     }
+
     if (solicitarReferidor && !grpReferidor.classList.contains('hidden')) {
-      const ref = sanitizeUsername(referidor.value);
-      if (ref) lines.push(`Referidor: ${ref}`);
+      const valRef = referidorSelect.value;
+      if (valRef === '') {
+        lines.push('Referidor: Ninguno');
+      } else {
+        lines.push(`Referidor: ${valRef}`);
+      }
     }
+
     openModal(lines.join('\n'));
   });
 
   // Enviar al bot
   confirmYes.addEventListener('click', () => {
+    const refVal = (solicitarReferidor && !grpReferidor.classList.contains('hidden'))
+      ? (referidorSelect.value || null)   // "" -> null (Ninguno)
+      : null;
+
     const payload = {
       tipo: 'autoregistro',
       nombre: nombre.value.trim(),
       telefono: (solicitarTelefono && !grpTelefono.classList.contains('hidden'))
         ? (countryCode.value + onlyDigits(telefono.value))
         : null,
-      referidor: (solicitarReferidor && !grpReferidor.classList.contains('hidden'))
-        ? sanitizeUsername(referidor.value)
-        : null};
-    if (payload.referidor === '') payload.referidor = null;
+      referidor: refVal
+    };
 
     if (tg?.sendData) {
       tg.sendData(JSON.stringify(payload));
