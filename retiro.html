@@ -158,11 +158,7 @@
     <div class="input-group">
       <label for="platform">Plataforma</label>
       <select id="platform">
-        <option value="">Seleccione una plataforma</option>
-        <option value="apueston">Apueston</option>
-        <option value="metabet">Metabet</option>
-        <option value="pppsol">PPPoker SOL</option>
-        <option value="pppbol">PPPoker BOL</option>
+        <!-- Las opciones se llenan dinámicamente -->
       </select>
     </div>
 
@@ -191,29 +187,99 @@
     tg.ready();
     tg.expand();
 
+    // Mapeo de código -> nombre visible
+    const PLATFORM_LABELS = {
+      apueston: 'Apueston',
+      metabet: 'Metabet',
+      pppsol: 'PPPoker SOL',
+      pppbol: 'PPPoker BOL'
+    };
+
     const retirarBtn = document.getElementById('retirarBtn');
     const modalOverlay = document.getElementById('modalOverlay');
     const summaryText = document.getElementById('summaryText');
     const confirmYes = document.getElementById('confirmYes');
     const confirmNo = document.getElementById('confirmNo');
+    const platformSelect = document.getElementById('platform');
+
+    /**
+     * Llena el select de plataformas en base al parámetro "plataformas"
+     * Ejemplos:
+     *   ?plataformas=apueston
+     *   ?plataformas=apueston,metabet,pppsol
+     */
+    function initPlatforms() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const plataformasParam = urlParams.get('plataformas');
+
+      let plataformas = [];
+
+      if (plataformasParam && plataformasParam.trim() !== '') {
+        plataformas = plataformasParam
+          .split(',')
+          .map(p => p.trim().toLowerCase())
+          .filter(p => p.length > 0);
+      }
+
+      // Si no se recibe nada, usamos todas las plataformas por defecto
+      if (plataformas.length === 0) {
+        plataformas = ['apueston', 'metabet', 'pppsol', 'pppbol'];
+      }
+
+      // Limpiamos opciones actuales
+      platformSelect.innerHTML = '';
+
+      // Si hay más de una plataforma, agregamos opción "Seleccione una plataforma"
+      if (plataformas.length > 1) {
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = 'Seleccione una plataforma';
+        platformSelect.appendChild(defaultOpt);
+      }
+
+      // Creamos opciones según la lista
+      plataformas.forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = PLATFORM_LABELS[code] || code;
+        platformSelect.appendChild(opt);
+      });
+
+      // Si solo hay una plataforma, se selecciona y se bloquea el select
+      if (plataformas.length === 1) {
+        platformSelect.value = plataformas[0];
+        platformSelect.disabled = true;
+      } else {
+        platformSelect.disabled = false;
+      }
+    }
+
+    initPlatforms();
 
     retirarBtn.addEventListener('click', () => {
       const userId = document.getElementById('userId').value.trim();
-      const platform = document.getElementById('platform').value;
-      const amount = document.getElementById('amount').value.trim();
+      const platform = platformSelect.value;
+      const amountStr = document.getElementById('amount').value.trim();
+      const amount = parseFloat(amountStr);
 
-      if (!userId || !platform || !amount || isNaN(amount)) {
-        alert("Por favor complete todos los campos correctamente.");
+      if (!userId || !platform || !amountStr || isNaN(amount)) {
+        alert('Por favor complete todos los campos correctamente.');
         return;
       }
 
-      summaryText.textContent = `Usuario: ${userId}\nPlataforma: ${platform}\nMonto: Bs ${parseFloat(amount).toFixed(2)}`;
+      const platformLabel = PLATFORM_LABELS[platform] || platform;
+
+      summaryText.textContent =
+        `Usuario: ${userId}\n` +
+        `Plataforma: ${platformLabel}\n` +
+        `Monto: Bs ${amount.toFixed(2)}`;
+
       modalOverlay.style.display = 'flex';
     });
 
     confirmYes.addEventListener('click', () => {
       const userId = document.getElementById('userId').value.trim();
-      const platform = document.getElementById('platform').value;
+      const platform = platformSelect.value;
       const amount = parseFloat(document.getElementById('amount').value.trim());
 
       const data = {
