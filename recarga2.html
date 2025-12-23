@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniApp • Usuario y Monto</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --primary:#4A90E2; --bg:#f5f8fb; --card:#fff; --text:#333; --border:#dfe6ee; --warning:#d84a4a; --note:#8a6f00;
+    }
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;background:var(--bg);margin:0;min-height:100vh;display:grid;place-items:center}
+    .container{width:100%;max-width:480px;background:var(--card);padding:24px 20px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+    h2{margin:0 0 14px;text-align:center;color:var(--primary)}
+    .toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin:8px 0 16px}
+    .toggle span{font-weight:600;color:#2f3b48}
+    .switch{position:relative;display:inline-block;width:56px;height:30px}
+    .switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;cursor:pointer;inset:0;background:#dfe6ee;border-radius:999px;transition:.2s}
+    .slider:before{content:"";position:absolute;height:22px;width:22px;left:4px;top:4px;background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.15);transition:.2s}
+    .switch input:checked + .slider{background:var(--primary)}
+    .switch input:checked + .slider:before{transform:translateX(26px)}
+    label{display:block;font-weight:600;color:#2f3b48;margin:12px 0 6px}
+    input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font-size:16px;outline:none}
+    input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,144,226,.15)}
+    .upper{text-transform:uppercase}
+    .normalcase{text-transform:none}
+    .warning{font-size:0.85rem;color:var(--warning);margin-top:4px}
+    .note{font-size:0.85rem;color:var(--note);margin-top:6px}
+    .range{display:flex;gap:10px;font-size:.85rem;color:#4b5a6a;justify-content:space-between;margin-top:6px}
+    .row{display:flex;gap:10px;margin-top:14px}
+    .btn{width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 id="titulo">Recarga</h2>
+
+    <div id="toggleGroup" class="toggle">
+      <span id="recargaLabel">Recarga</span>
+      <label class="switch">
+        <input id="modo" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+      <span id="cobroLabel">Cobro</span>
+    </div>
+
+    <label for="usuario">Usuario</label>
+    <input id="usuario" class="upper" type="text" placeholder="INGRESE USUARIO" maxlength="32" />
+
+    <div id="nombreGroup">
+      <label id="lblNombre" for="nombre">Nombre del depositante</label>
+      <input id="nombre" class="normalcase" type="text" placeholder="Nombre y apellidos" maxlength="60" readonly />
+      <div id="warnNombre" class="warning">Si el nombre no es correcto, comuníquese con el cajero.</div>
+    </div>
+
+    <label for="monto">Monto</label>
+    <input id="monto" type="text" inputmode="numeric" placeholder="0" />
+    <div class="range">
+      <span>Mín: <strong id="minLabel">—</strong></span>
+      <span>Máx: <strong id="maxLabel">—</strong></span>
+    </div>
+    <div id="cobroNote" class="note hidden"></div>
+
+    <div class="row">
+      <button id="btnSend" class="btn" disabled>Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+
+    function getParams(){
+      const layers = [];
+      try { layers.push(new URLSearchParams(location.search)); } catch {}
+      try { layers.push(new URLSearchParams(location.hash?.startsWith('#')? location.hash.slice(1): '')); } catch {}
+      try { layers.push(new URLSearchParams(window.Telegram?.WebApp?.initDataUnsafe?.start_param || '')); } catch {}
+
+      const g = (key)=>{
+        for(const qs of layers){ const v = qs.get(key); if(v!==null) return v; }
+        return null;
+      };
+
+      const min = g('montoMinimo') ?? g('montominimo');
+      const max = g('MontoMaximo') ?? g('montomaximo');
+      const minCobro = g('MinCobro') ?? g('mincobro');
+      const maxCobro = g('MaxCobro') ?? g('maxcobro');
+
+      const usuario = g('usuario') ?? '';
+      const recarga = g('recarga') ?? '';
+      const cobroTitle = g('cobro') ?? '';
+      const nombre = g('nombre') ?? '';
+      const plataforma = g('plataforma') ?? '';
+      const userlock = g('userlock') ?? g('userLock') ?? 'false';
+      const cobroEnabled = g('cobroEnabled') ?? 'false';
+
+      return {minRaw:min,maxRaw:max,minCobroRaw:minCobro,maxCobroRaw:maxCobro,usuario,recarga,cobroTitle,nombre,plataforma,userlock,cobroEnabled};
+    }
+
+    function parseBool(v){ return String(v).trim().toLowerCase() === 'true'; }
+    function parseIntAmount(v){
+      if(v==null) return NaN;
+      const t = String(v).trim().replace(/\D/g,'');
+      if(t==='') return NaN;
+      const n=parseInt(t,10);
+      return Number.isFinite(n)?n:NaN;
+    }
+
+    const state = {
+      min:NaN,max:NaN,minCobro:NaN,maxCobro:NaN,
+      modo:'recarga',
+      titles:{recarga:'Recarga',cobro:'Cobro'},
+      labels:{recarga:'Recarga',cobro:'Cobro'},
+      plataforma:'',
+      usuarioInicial:'',
+      userlock:false,
+      cobroEnabled:false
+    };
+
+    function currentMin(){return state.modo==='cobro'&&!Number.isNaN(state.minCobro)?state.minCobro:state.min;}
+    function currentMax(){return state.modo==='cobro'&&!Number.isNaN(state.maxCobro)?state.maxCobro:state.max;}
+
+    function updateTitle(){
+      const titulo=state.modo==='recarga'?state.titles.recarga:state.titles.cobro;
+      $('titulo').textContent=titulo||(state.modo==='recarga'?'Recarga':'Cobro');
+    }
+    function updateNombreLabel(){
+      const label=state.modo==='recarga'?'Nombre del depositante':'Nombre del beneficiario del QR';
+      $('lblNombre').textContent=label;
+    }
+    function updateNombreVisibility(){
+      const group=$('nombreGroup');
+      const shouldShow=state.modo==='cobro';
+      shouldShow?group.classList.remove('hidden'):group.classList.add('hidden');
+    }
+    function updateRangeLabels(){
+      const mn=currentMin();const mx=currentMax();
+      $('minLabel').textContent=Number.isNaN(mn)?'—':mn;
+      $('maxLabel').textContent=Number.isNaN(mx)?'—':mx;
+    }
+    function toggleUsuarioEditable(){
+      const inp=$('usuario');
+      if(state.modo==='cobro'){
+        inp.value=state.usuarioInicial||inp.value.toUpperCase();
+        inp.setAttribute('readonly',true);
+      }else{
+        if(state.userlock){
+          if(state.usuarioInicial) inp.value=state.usuarioInicial;
+          inp.setAttribute('readonly',true);
+        }else inp.removeAttribute('readonly');
+      }
+    }
+    function updateCobroNote(){
+      const note=$('cobroNote');
+      const mx=state.maxCobro;
+      const m=parseIntAmount($('monto').value);
+      const show=state.modo==='cobro'&&!Number.isNaN(mx)&&!Number.isNaN(m)&&m>mx;
+      if(show){
+        note.textContent=`Para montos mayores a ${mx} Bs, se solicitará aprobación del administrador.`;
+        note.classList.remove('hidden');
+      }else{note.classList.add('hidden');note.textContent='';}
+    }
+    function validate(){
+      const m=parseIntAmount($('monto').value);
+      let ok=true;const mn=currentMin();const mx=currentMax();
+      if(Number.isNaN(m)) ok=false;
+      if(state.modo==='recarga'){
+        if(Number.isNaN(mn)||Number.isNaN(mx)||m<mn||m>mx) ok=false;
+      }else if(Number.isNaN(mn)||m<mn) ok=false;
+      const user=$('usuario').value.trim();
+      const regex=/^[A-Z0-9]+$/;
+      if(!regex.test(user)) ok=false;
+      $('btnSend').disabled=!ok;return ok;
+    }
+    function buildPayload(){
+      const modo=state.modo==='recarga'?'pago':'cobro';
+      return{
+        usuario:$('usuario').value.trim(),
+        monto:parseIntAmount($('monto').value),
+        nombre:$('nombre').value.trim(),
+        plataforma:state.plataforma,
+        modo
+      };
+    }
+    function sendToTelegram(){
+      const payload=buildPayload();
+      const json=JSON.stringify(payload);
+
+      // Si NO está dentro de Telegram WebApp (navegador normal, Telegram X sin soporte, etc.)
+      if(!window.Telegram || !Telegram.WebApp){
+        alert(
+          'Esta MiniApp debe ejecutarse dentro de Telegram.\n\n' +
+          '1. Vuelve al chat del bot.\n' +
+          '2. Presiona el botón que abre la ventana de Recarga/Cobro.\n' +
+          '3. No la abras desde el navegador externo.'
+        );
+        return;
+      }
+
+      const tg = Telegram.WebApp;
+      try{
+        tg.HapticFeedback?.impactOccurred?.('medium');
+        tg.sendData(json);
+        setTimeout(()=>tg.close(),150);
+      }catch(e){
+        alert('Ocurrió un error al enviar los datos a Telegram. Por favor, intenta nuevamente.');
+        console.error(e);
+      }
+    }
+
+    (function init(){
+      const {
+        minRaw,maxRaw,minCobroRaw,maxCobroRaw,
+        usuario,recarga,cobroTitle,nombre,plataforma,userlock,cobroEnabled
+      } = getParams();
+
+      state.min=parseIntAmount(minRaw);
+      state.max=parseIntAmount(maxRaw);
+      state.minCobro=parseIntAmount(minCobroRaw);
+      state.maxCobro=parseIntAmount(maxCobroRaw);
+
+      const recargaSplit=v=>{
+        if(!v)return{first:'Recarga',rest:'Recarga'};
+        const p=v.trim().split(/\s+/);
+        return{first:p[0],rest:p.slice(1).join(' ')||'Recarga'};
+      };
+      const cobroSplit=v=>{
+        if(!v)return{first:'Cobro',rest:'Cobro'};
+        const p=v.trim().split(/\s+/);
+        return{first:p[0],rest:p.slice(1).join(' ')||'Cobro'};
+      };
+
+      const r=recargaSplit(recarga),c=cobroSplit(cobroTitle);
+      state.labels.recarga=r.first;state.titles.recarga=r.rest;
+      state.labels.cobro=c.first;state.titles.cobro=c.rest;
+      $('recargaLabel').textContent=r.first;
+      $('cobroLabel').textContent=c.first;
+
+      state.plataforma=plataforma?.trim()||'';
+      state.userlock=parseBool(userlock);
+      state.cobroEnabled=parseBool(cobroEnabled);
+
+      if(!state.cobroEnabled){
+        $('toggleGroup').remove();
+        state.modo='recarga';
+      }
+
+      if(usuario?.trim()){
+        state.usuarioInicial=usuario.trim().toUpperCase();
+        $('usuario').value=state.usuarioInicial;
+      }
+      if(nombre?.trim()) $('nombre').value=nombre.trim();
+
+      updateTitle();
+      updateNombreLabel();
+      updateNombreVisibility();
+      updateRangeLabels();
+      toggleUsuarioEditable();
+      updateCobroNote();
+
+      if(state.cobroEnabled){
+        $('modo').addEventListener('change',e=>{
+          state.modo=e.target.checked?'cobro':'recarga';
+          updateTitle();
+          updateNombreLabel();
+          updateNombreVisibility();
+          updateRangeLabels();
+          toggleUsuarioEditable();
+          updateCobroNote();
+          validate();
+        });
+      }
+
+      $('usuario').addEventListener('input',e=>{
+        e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+        validate();
+      });
+      $('monto').addEventListener('input',e=>{
+        e.target.value=e.target.value.replace(/\D/g,'');
+        updateCobroNote();
+        validate();
+      });
+      $('btnSend').addEventListener('click',()=>{if(validate())sendToTelegram();});
+      validate();
+
+      // Avisar a Telegram que el WebApp está listo y enviar evento "opened"
+      if(window.Telegram && Telegram.WebApp){
+        try{
+          const tg = Telegram.WebApp;
+          tg.ready();
+          tg.sendData(JSON.stringify({
+            event: "opened",
+            timestamp: Date.now()
+          }));
+        }catch(e){
+          console.error('Error al enviar evento "opened":', e);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
