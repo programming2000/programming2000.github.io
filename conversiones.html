@@ -156,14 +156,12 @@
         return null;
       };
 
-      // Lista de plataformas habilitadas: "apueston,metabet,pppbol,pppsol"
       const platformsRaw = g('platforms') ?? g('plataformas') ?? '';
       const platformIds = platformsRaw
         .split(',')
         .map(p => p.trim())
         .filter(p => p.length > 0);
 
-      // Usuarios por plataforma (usr_xxx o user_xxx)
       const users = {};
       for (const id of platformIds) {
         const keyId = id.trim();
@@ -191,23 +189,18 @@
 
     function initPlatformsSelects() {
       const origen = $('plataformaOrigen');
-      const destino = $('plataformaDestino');
       origen.innerHTML = '<option value="">Seleccione plataforma origen</option>';
-      destino.innerHTML = '<option value="">Seleccione plataforma destino</option>';
 
       for (const id of state.platformIds) {
         const label = prettyPlatformName(id);
-
         const opt1 = document.createElement('option');
         opt1.value = id;
         opt1.textContent = label;
         origen.appendChild(opt1);
-
-        const opt2 = document.createElement('option');
-        opt2.value = id;
-        opt2.textContent = label;
-        destino.appendChild(opt2);
       }
+
+      // Inicialmente destino muestra todas (sin origen seleccionado)
+      updateDestinoOptions('');
 
       const error = $('platformsError');
       if (state.platformIds.length < 2) {
@@ -218,10 +211,41 @@
       }
     }
 
+    // Reconstruye el select de destino excluyendo la plataforma de origen
+    function updateDestinoOptions(origenId) {
+      const destino = $('plataformaDestino');
+      const current = destino.value;
+
+      destino.innerHTML = '<option value="">Seleccione plataforma destino</option>';
+
+      for (const id of state.platformIds) {
+        if (id === origenId) continue; // no mostrar misma plataforma que origen
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = prettyPlatformName(id);
+        destino.appendChild(opt);
+      }
+
+      // Si el valor actual sigue siendo válido (y distinto al origen), lo mantenemos
+      if (current && current !== origenId && state.platformIds.includes(current)) {
+        for (const option of destino.options) {
+          if (option.value === current) {
+            destino.value = current;
+            break;
+          }
+        }
+      } else {
+        destino.value = "";
+      }
+    }
+
     function onChangeOrigen() {
       const origenId = $('plataformaOrigen').value;
       const userField = $('usuarioOrigen');
       const warning = $('origenUserWarning');
+
+      // Actualizar opciones de destino cada vez que cambia el origen
+      updateDestinoOptions(origenId);
 
       const preUser = state.users[origenId] || '';
       userField.value = preUser;
@@ -241,10 +265,9 @@
       const destinoId = $('plataformaDestino').value;
       const userField = $('usuarioDestino');
       const preUser = state.users[destinoId] || '';
-      // Si tienes usuario preconfigurado para destino, lo sugerimos, pero es editable
-      if (preUser && !userField.value) {
-        userField.value = preUser;
-      }
+
+      // Siempre que cambie la plataforma destino, pisar el input con el usuario asociado
+      userField.value = preUser;
       validate();
     }
 
@@ -261,15 +284,11 @@
 
       let ok = true;
 
-      // Plataformas válidas y distintas
       if (!origenId || !destinoId) ok = false;
       if (origenId && destinoId && origenId === destinoId) ok = false;
-
-      // Monto válido
       if (!Number.isFinite(monto) || monto <= 0) ok = false;
 
-      // Usuario de origen OBLIGATORIO y NO editable.
-      // Si no viene configurado, no se puede continuar.
+      // Usuario de origen obligatorio y no editable
       if (!usuarioOrigen) ok = false;
 
       $('btnEnviar').disabled = !ok;
@@ -320,14 +339,13 @@
 
       initPlatformsSelects();
 
-      // Detectar si estamos en Telegram WebApp
       state.telegramSupported = !!(window.Telegram && Telegram.WebApp);
 
       if (state.telegramSupported) {
         try {
           Telegram.WebApp.ready();
         } catch (e) {
-          // Continuamos sin romper la página
+          // Ignoramos error de ready
         }
       } else {
         showNotSupportedMessage();
