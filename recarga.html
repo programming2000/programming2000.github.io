@@ -179,14 +179,36 @@
       const modo=state.modo==='recarga'?'pago':'cobro';
       return{usuario:$('usuario').value.trim(),monto:parseIntAmount($('monto').value),nombre:$('nombre').value.trim(),plataforma:state.plataforma,modo};
     }
-    function sendToTelegram(){
-      const payload=buildPayload();
-      const json=JSON.stringify(payload);
-      if(window.Telegram?.WebApp){
-        const tg=Telegram.WebApp;
-        try{tg.HapticFeedback?.impactOccurred?.('medium');tg.sendData(json);setTimeout(()=>tg.close(),150);}catch(e){alert('Error: '+e.message);}
-      }else alert(json);
+    function showNotSupportedMessage() {
+    const container = document.querySelector(".container");
+    container.innerHTML = `
+      <h2 style="color:#d84a4a;text-align:center">No puedes usar esta MiniApp aquí</h2>
+      <p style="text-align:center;font-size:15px;color:#444">
+        Esta herramienta solo funciona dentro del <strong>Telegram oficial</strong> .<br><br>
+        Si estás usando <strong>Telegram X</strong> o un navegador normal, 
+        ábrelo desde el Telegram oficial para continuar.
+      </p>
+    `;
+  }
+
+  function sendToTelegram(){
+    const payload = buildPayload();
+    const json = JSON.stringify(payload);
+
+    if (window.Telegram?.WebApp) {
+      const tg = Telegram.WebApp;
+      try {
+        tg.HapticFeedback?.impactOccurred?.('medium');
+        tg.sendData(json);
+
+        setTimeout(()=>tg.close(),150);
+      } catch(e) {
+        showNotSupportedMessage();
+      }
+    } else {
+      showNotSupportedMessage();
     }
+  }
 
     (function init(){
       const {minRaw,maxRaw,minCobroRaw,maxCobroRaw,usuario,recarga,cobroTitle,nombre,plataforma,userlock,cobroEnabled}=getParams();
