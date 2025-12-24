@@ -88,6 +88,62 @@
       font-size:0.95rem;
       margin-top:12px;
     }
+
+    /* Modal de confirmación */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:20;
+    }
+    .modal{
+      background:#fff;
+      border-radius:16px;
+      padding:18px 16px;
+      width:92%;
+      max-width:420px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .modal h3{
+      margin:0 0 8px;
+      text-align:center;
+      color:#4A90E2;
+    }
+    .modal p{
+      margin:4px 0;
+      color:#333;
+      font-size:15px;
+    }
+    .modal hr{
+      margin:10px 0;
+      border:none;
+      border-top:1px solid #ddd;
+    }
+    .modal-btns{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .btn-cancel{
+      flex:1;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #ccc;
+      background:#eee;
+      cursor:pointer;
+    }
+    .btn-ok{
+      flex:1;
+      padding:10px;
+      border-radius:10px;
+      border:0;
+      background:#4A90E2;
+      color:white;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -130,6 +186,27 @@
       Esta MiniApp solo funciona dentro del <strong>Telegram oficial</strong> con soporte para WebApps.
       Si la estás abriendo desde un navegador normal o desde otra app (por ejemplo, Telegram X),
       por favor ábrela desde el Telegram oficial para continuar.
+    </div>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div id="confirmBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>Confirmar Conversión</h3>
+
+      <p><b>Origen:</b> <span id="confOrigen"></span></p>
+      <p><b>Usuario Origen:</b> <span id="confUserOrigen"></span></p>
+
+      <p><b>Destino:</b> <span id="confDestino"></span></p>
+      <p><b>Usuario Destino:</b> <span id="confUserDestino"></span></p>
+
+      <hr>
+      <p><b>Monto:</b> <span id="confMonto"></span> Bs</p>
+
+      <div class="modal-btns">
+        <button class="btn-cancel" id="btnCancelConfirm">Cancelar</button>
+        <button class="btn-ok" id="btnOkConfirm">Confirmar</button>
+      </div>
     </div>
   </div>
 
@@ -199,7 +276,6 @@
         origen.appendChild(opt1);
       }
 
-      // Inicialmente destino muestra todas (sin origen seleccionado)
       updateDestinoOptions('');
 
       const error = $('platformsError');
@@ -211,7 +287,6 @@
       }
     }
 
-    // Reconstruye el select de destino excluyendo la plataforma de origen
     function updateDestinoOptions(origenId) {
       const destino = $('plataformaDestino');
       const current = destino.value;
@@ -226,7 +301,6 @@
         destino.appendChild(opt);
       }
 
-      // Si el valor actual sigue siendo válido (y distinto al origen), lo mantenemos
       if (current && current !== origenId && state.platformIds.includes(current)) {
         for (const option of destino.options) {
           if (option.value === current) {
@@ -244,7 +318,6 @@
       const userField = $('usuarioOrigen');
       const warning = $('origenUserWarning');
 
-      // Actualizar opciones de destino cada vez que cambia el origen
       updateDestinoOptions(origenId);
 
       const preUser = state.users[origenId] || '';
@@ -266,7 +339,6 @@
       const userField = $('usuarioDestino');
       const preUser = state.users[destinoId] || '';
 
-      // Siempre que cambie la plataforma destino, pisar el input con el usuario asociado
       userField.value = preUser;
       validate();
     }
@@ -288,7 +360,6 @@
       if (origenId && destinoId && origenId === destinoId) ok = false;
       if (!Number.isFinite(monto) || monto <= 0) ok = false;
 
-      // Usuario de origen obligatorio y no editable
       if (!usuarioOrigen) ok = false;
 
       $('btnEnviar').disabled = !ok;
@@ -332,6 +403,20 @@
       }
     }
 
+    function openConfirm(){
+      $('confOrigen').textContent = prettyPlatformName($('plataformaOrigen').value);
+      $('confDestino').textContent = prettyPlatformName($('plataformaDestino').value);
+      $('confUserOrigen').textContent = $('usuarioOrigen').value.trim() || '—';
+      $('confUserDestino').textContent = $('usuarioDestino').value.trim() || '—';
+      $('confMonto').textContent = $('monto').value.trim();
+
+      $('confirmBackdrop').classList.remove('hidden');
+    }
+
+    function closeConfirm(){
+      $('confirmBackdrop').classList.add('hidden');
+    }
+
     (function init() {
       const { platformIds, users } = getParams();
       state.platformIds = platformIds;
@@ -345,7 +430,7 @@
         try {
           Telegram.WebApp.ready();
         } catch (e) {
-          // Ignoramos error de ready
+          // ignoramos error
         }
       } else {
         showNotSupportedMessage();
@@ -355,7 +440,22 @@
       $('plataformaDestino').addEventListener('change', onChangeDestino);
       $('usuarioDestino').addEventListener('input', () => validate());
       $('monto').addEventListener('input', (e) => { sanitizeMontoInput(e.target); validate(); });
-      $('btnEnviar').addEventListener('click', sendToTelegram);
+
+      // En lugar de enviar directo, abrimos la confirmación
+      $('btnEnviar').addEventListener('click', () => {
+        if (validate()) {
+          openConfirm();
+        }
+      });
+
+      $('btnCancelConfirm').addEventListener('click', () => {
+        closeConfirm();
+      });
+
+      $('btnOkConfirm').addEventListener('click', () => {
+        closeConfirm();
+        sendToTelegram();
+      });
 
       validate();
     })();
