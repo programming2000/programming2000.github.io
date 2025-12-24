@@ -287,18 +287,13 @@
       validate();
 
       // Avisar a Telegram que el WebApp está listo y enviar evento "opened"
-      if(window.Telegram && Telegram.WebApp){
-        try{
-          const tg = Telegram.WebApp;
-          tg.ready();
-          tg.sendData(JSON.stringify({
-            event: "opened",
-            timestamp: Date.now()
-          }));
-        }catch(e){
-          console.error('Error al enviar evento "opened":', e);
-        }
-      }
+      Telegram.WebApp.ready();
+      
+      Telegram.WebApp.sendData(JSON.stringify({
+        event: "opened",
+        timestamp: Date.now()
+      }));
+      
     })();
   </script>
 </body>
