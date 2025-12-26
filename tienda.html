@@ -394,9 +394,23 @@
         const params = new URLSearchParams(window.location.search);
         const productsParam = params.get("products");
 
+        console.log("productsParam:", productsParam);
+
         if (productsParam) {
-          const decoded = decodeURIComponent(productsParam);
-          const raw = JSON.parse(decoded);
+          let raw = null;
+
+          // 1) Intentar parsear directamente (URLSearchParams ya suele decodificar %xx)
+          try {
+            raw = JSON.parse(productsParam);
+          } catch (e1) {
+            // 2) Si falla, intentar decodificar manualmente y parsear
+            try {
+              const decoded = decodeURIComponent(productsParam);
+              raw = JSON.parse(decoded);
+            } catch (e2) {
+              console.warn("Error al parsear products desde la URL:", e1, e2);
+            }
+          }
 
           if (Array.isArray(raw) && raw.length > 0) {
             products = raw.map((p, index) => {
@@ -420,11 +434,17 @@
                 stock
               };
             });
+
+            console.log("Productos cargados desde URL:", products);
             return;
+          } else {
+            console.warn("El parámetro products existe pero no contiene un array válido.");
           }
+        } else {
+          console.warn("No se encontró parámetro 'products' en la URL.");
         }
       } catch (e) {
-        console.warn("Error al leer products desde la URL:", e);
+        console.warn("Error general al leer products desde la URL:", e);
       }
 
       // Fallback demo si no hay datos válidos
@@ -729,7 +749,7 @@
           timestamp: Date.now(),
         };
 
-        tg.sendData(JSON.stringify(payload)); // Aquí sí se cerrará la miniapp al enviar el pedido
+        tg.sendData(JSON.stringify(payload));
       });
     }
 
