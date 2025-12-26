@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniApp • Catálogo de Productos</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --primary: #4a90e2;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #222222;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --danger: #e11d48;
+      --success: #16a34a;
+      --backdrop: rgba(15, 23, 42, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .app-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .app-subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .product-card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+      cursor: pointer;
+    }
+
+    .product-clickable {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .product-image-wrapper {
+      width: 100%;
+      padding-top: 60%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-image-wrapper img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-body {
+      padding: 10px 10px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .product-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .product-description {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.3;
+      min-height: 2.4em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .product-price-stock {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 0.8rem;
+    }
+
+    .price { font-weight: 700; }
+
+    .stock { font-size: 0.75rem; }
+
+    .stock-low { color: var(--danger); }
+
+    .stock-ok { color: var(--success); }
+
+    .product-footer {
+      padding: 8px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .qty-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .qty-btn {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 1rem;
+      cursor: pointer;
+      outline: none;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .qty-btn:active {
+      background: rgba(15, 23, 42, 0.06);
+    }
+
+    .qty-input {
+      width: 48px;
+      text-align: center;
+      font-size: 0.85rem;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .qty-input:focus {
+      border-color: var(--primary);
+    }
+
+    .cart-pill {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .cart-summary {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: linear-gradient(to top, var(--bg) 80%, transparent);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cart-summary-label { color: var(--muted); }
+
+    .cart-summary-main { font-weight: 600; }
+
+    .badge-empty { color: var(--muted); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--backdrop);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card);
+      border-radius: 16px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+    }
+
+    .modal-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      line-height: 1;
+    }
+
+    .modal-image-wrapper {
+      width: 100%;
+      padding-top: 70%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal-image-wrapper img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .modal-body {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+
+    .modal-description {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .modal-price-stock {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .modal-footer {
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .modal-qty-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .modal-subtotal {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <div class="app-title">🛒 Catálogo de Productos</div>
+    <div class="app-subtitle">
+      Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.
+    </div>
+  </div>
+
+  <div id="productsContainer" class="products-grid"></div>
+
+  <div id="cartSummary" class="cart-summary">
+    <span class="cart-summary-label">Total:</span>
+    <span id="cartInfo" class="cart-summary-main badge-empty">Bs. 0.00 (0 prod.)</span>
+  </div>
+
+  <!-- MODAL DETALLE PRODUCTO -->
+  <div id="productModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">Producto</div>
+        <button id="modalClose" class="modal-close" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-image-wrapper">
+        <img id="modalImage" src="" alt="Producto">
+      </div>
+      <div class="modal-body">
+        <div id="modalDescription" class="modal-description"></div>
+        <div class="modal-price-stock">
+          <span id="modalPrice" class="price">Bs. 0.00</span>
+          <span id="modalStock" class="stock">Stock: 0</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-qty-label">Cantidad para este producto:</div>
+        <div class="qty-wrapper" id="modalQtyWrapper">
+          <button class="qty-btn" data-action="dec">−</button>
+          <input
+            type="number"
+            class="qty-input"
+            id="modalQtyInput"
+            value="0"
+            min="0"
+            inputmode="numeric"
+          />
+          <button class="qty-btn" data-action="inc">+</button>
+        </div>
+        <div id="modalSubtotal" class="modal-subtotal">Subtotal: Bs. 0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand && tg.expand();
+      document.documentElement.style.setProperty(
+        "--primary",
+        tg.themeParams.button_color || "#4a90e2"
+      );
+    }
+
+    let products = [];
+    const cart = {}; // { productId: qty }
+
+    const productsContainer = document.getElementById("productsContainer");
+    const cartInfo = document.getElementById("cartInfo");
+
+    const productModal = document.getElementById("productModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalImage = document.getElementById("modalImage");
+    const modalDescription = document.getElementById("modalDescription");
+    const modalPrice = document.getElementById("modalPrice");
+    const modalStock = document.getElementById("modalStock");
+    const modalClose = document.getElementById("modalClose");
+    const modalQtyInput = document.getElementById("modalQtyInput");
+    const modalSubtotal = document.getElementById("modalSubtotal");
+    const modalQtyWrapper = document.getElementById("modalQtyWrapper");
+
+    let currentModalProductId = null;
+
+    // Carga de productos desde window.PRODUCTS (o demo)
+    function initProducts() {
+      const src = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : null;
+
+      if (src && src.length > 0) {
+        products = src.map((p, index) => {
+          const id = p.id != null ? p.id : index + 1;
+
+          const nombre = p.nombre ?? p.name ?? `Producto ${id}`;
+          const descripcion = p.descripcion ?? p.description ?? "";
+          const precio = Number(p.precio ?? p.price ?? 0) || 0;
+          const imagen =
+            p.imagen ??
+            p.image ??
+            "https://via.placeholder.com/600x400?text=Producto";
+          const stock = Number(p.stock ?? 0) || 0;
+
+          return { id, name: nombre, description: descripcion, price: precio, image: imagen, stock };
+        });
+      } else {
+        // Productos de demo si no se pasa nada
+        products = [
+          {
+            id: 1,
+            name: "Producto Demo 1",
+            description: "Ejemplo de producto. Pásame tus productos en window.PRODUCTS.",
+            price: 10.0,
+            image: "https://via.placeholder.com/600x400?text=Demo+1",
+            stock: 5,
+          },
+          {
+            id: 2,
+            name: "Producto Demo 2",
+            description: "Otro ejemplo de producto.",
+            price: 20.5,
+            image: "https://via.placeholder.com/600x400?text=Demo+2",
+            stock: 3,
+          },
+        ];
+      }
+    }
+
+    function renderProducts() {
+      productsContainer.innerHTML = "";
+
+      products.forEach((p) => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.dataset.id = p.id;
+
+        const qty = cart[p.id] || 0;
+        const subtotalText = qty
+          ? `${qty} u. • Bs. ${(qty * p.price).toFixed(2)}`
+          : "Sin seleccionar";
+
+        card.innerHTML = `
+          <div class="product-clickable">
+            <div class="product-image-wrapper">
+              <img src="${p.image}" alt="${p.name}">
+            </div>
+            <div class="product-body">
+              <div class="product-name">${p.name}</div>
+              <div class="product-description">${p.description}</div>
+              <div class="product-price-stock">
+                <span class="price">Bs. ${p.price.toFixed(2)}</span>
+                <span class="stock ${p.stock <= 3 ? "stock-low" : "stock-ok"}">
+                  Stock: ${p.stock}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="product-footer">
+            <div class="qty-wrapper" data-id="${p.id}">
+              <button class="qty-btn" data-action="dec">−</button>
+              <input
+                type="number"
+                class="qty-input"
+                value="${qty}"
+                min="0"
+                max="${p.stock}"
+                inputmode="numeric"
+              />
+              <button class="qty-btn" data-action="inc">+</button>
+            </div>
+            <div class="cart-pill" id="pill-${p.id}">
+              ${subtotalText}
+            </div>
+          </div>
+        `;
+
+        productsContainer.appendChild(card);
+      });
+
+      attachCardListeners();
+      attachQtyListeners();
+    }
+
+    function attachCardListeners() {
+      productsContainer.querySelectorAll(".product-card").forEach((card) => {
+        const id = Number(card.dataset.id);
+        const clickable = card.querySelector(".product-clickable");
+        clickable.addEventListener("click", () => openProductModal(id));
+      });
+    }
+
+    function attachQtyListeners() {
+      productsContainer.querySelectorAll(".qty-wrapper").forEach((wrapper) => {
+        const id = Number(wrapper.getAttribute("data-id"));
+        const decBtn = wrapper.querySelector('[data-action="dec"]');
+        const incBtn = wrapper.querySelector('[data-action="inc"]');
+        const input = wrapper.querySelector(".qty-input");
+
+        [decBtn, incBtn, input].forEach((el) => {
+          el.addEventListener("click", (e) => e.stopPropagation());
+        });
+
+        incBtn.addEventListener("click", () => {
+          const product = products.find((x) => x.id === id);
+          let current = Number(input.value) || 0;
+          if (current < product.stock) {
+            current += 1;
+            input.value = current;
+            setQty(id, current, true);
+          }
+        });
+
+        decBtn.addEventListener("click", () => {
+          let current = Number(input.value) || 0;
+          if (current > 0) {
+            current -= 1;
+            input.value = current;
+            setQty(id, current, true);
+          }
+        });
+
+        input.addEventListener("change", () => {
+          const product = products.find((x) => x.id === id);
+          let value = parseInt(input.value, 10);
+          if (isNaN(value) || value < 0) value = 0;
+          if (value > product.stock) value = product.stock;
+          input.value = value;
+          setQty(id, value, true);
+        });
+      });
+    }
+
+    function setQty(productId, qty, updateModal = false) {
+      const product = products.find((x) => x.id === productId);
+      if (!product) return;
+
+      if (qty <= 0) {
+        delete cart[productId];
+      } else {
+        cart[productId] = qty;
+      }
+
+      updatePill(productId);
+      updateCartSummary();
+
+      if (updateModal && currentModalProductId === productId) {
+        modalQtyInput.value = cart[productId] || 0;
+        updateModalSubtotal();
+      }
+    }
+
+    function updatePill(productId) {
+      const pill = document.getElementById("pill-" + productId);
+      const qty = cart[productId] || 0;
+      const product = products.find((x) => x.id === productId);
+      if (!pill || !product) return;
+
+      if (qty === 0) {
+        pill.textContent = "Sin seleccionar";
+      } else {
+        const subtotal = product.price * qty;
+        pill.textContent = `${qty} u. • Bs. ${subtotal.toFixed(2)}`;
+      }
+    }
+
+    function updateCartSummary() {
+      const ids = Object.keys(cart);
+      if (ids.length === 0) {
+        cartInfo.textContent = "Bs. 0.00 (0 prod.)";
+        cartInfo.classList.add("badge-empty");
+        if (tg) tg.MainButton.hide();
+        return;
+      }
+
+      let totalItems = 0;
+      let totalAmount = 0;
+      ids.forEach((idStr) => {
+        const id = Number(idStr);
+        const qty = cart[id];
+        const product = products.find((x) => x.id === id);
+        totalItems += qty;
+        totalAmount += qty * product.price;
+      });
+
+      cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
+      cartInfo.classList.remove("badge-empty");
+
+      if (tg) {
+        tg.MainButton.setText(`Enviar pedido • Bs. ${totalAmount.toFixed(2)}`);
+        tg.MainButton.show();
+      }
+    }
+
+    function openProductModal(productId) {
+      const product = products.find((x) => x.id === productId);
+      if (!product) return;
+
+      currentModalProductId = productId;
+
+      modalTitle.textContent = product.name;
+      modalImage.src = product.image;
+      modalImage.alt = product.name;
+      modalDescription.textContent = product.description;
+      modalPrice.textContent = `Bs. ${product.price.toFixed(2)}`;
+      modalStock.textContent = `Stock: ${product.stock}`;
+      modalStock.className =
+        "stock " + (product.stock <= 3 ? "stock-low" : "stock-ok");
+
+      const currentQty = cart[productId] || 0;
+      modalQtyInput.max = String(product.stock);
+      modalQtyInput.value = currentQty;
+      updateModalSubtotal();
+
+      productModal.classList.add("show");
+    }
+
+    function closeProductModal() {
+      productModal.classList.remove("show");
+      currentModalProductId = null;
+    }
+
+    function updateModalSubtotal() {
+      if (currentModalProductId == null) return;
+      const product = products.find((x) => x.id === currentModalProductId);
+      if (!product) return;
+
+      let qty = Number(modalQtyInput.value) || 0;
+      if (qty < 0) qty = 0;
+      if (qty > product.stock) qty = product.stock;
+      modalQtyInput.value = qty;
+
+      const subtotal = qty * product.price;
+      modalSubtotal.textContent = `Subtotal: Bs. ${subtotal.toFixed(2)}`;
+    }
+
+    modalClose.addEventListener("click", closeProductModal);
+    productModal.addEventListener("click", (e) => {
+      if (e.target === productModal) {
+        closeProductModal();
+      }
+    });
+
+    modalQtyWrapper.querySelectorAll(".qty-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (currentModalProductId == null) return;
+        const product = products.find((x) => x.id === currentModalProductId);
+        if (!product) return;
+
+        let qty = Number(modalQtyInput.value) || 0;
+        const action = btn.getAttribute("data-action");
+
+        if (action === "inc" && qty < product.stock) qty += 1;
+        if (action === "dec" && qty > 0) qty -= 1;
+
+        modalQtyInput.value = qty;
+        updateModalSubtotal();
+        setQty(currentModalProductId, qty);
+        syncCardQty(currentModalProductId, qty);
+      });
+    });
+
+    modalQtyInput.addEventListener("change", () => {
+      if (currentModalProductId == null) return;
+      const product = products.find((x) => x.id === currentModalProductId);
+      if (!product) return;
+
+      let qty = parseInt(modalQtyInput.value, 10);
+      if (isNaN(qty) || qty < 0) qty = 0;
+      if (qty > product.stock) qty = product.stock;
+
+      modalQtyInput.value = qty;
+      updateModalSubtotal();
+      setQty(currentModalProductId, qty);
+      syncCardQty(currentModalProductId, qty);
+    });
+
+    function syncCardQty(productId, qty) {
+      const wrapper = productsContainer.querySelector(
+        `.qty-wrapper[data-id="${productId}"]`
+      );
+      if (!wrapper) return;
+      const input = wrapper.querySelector(".qty-input");
+      if (input) {
+        input.value = qty;
+      }
+    }
+
+    if (tg) {
+      tg.onEvent("mainButtonClicked", () => {
+        const items = Object.keys(cart).map((idStr) => {
+          const id = Number(idStr);
+          const product = products.find((x) => x.id === id);
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            qty: cart[id],
+            subtotal: product.price * cart[id],
+          };
+        });
+
+        const payload = {
+          event: "order_submitted",
+          total_items: items.reduce((acc, i) => acc + i.qty, 0),
+          total_amount: items.reduce((acc, i) => acc + i.subtotal, 0),
+          items,
+          timestamp: Date.now(),
+        };
+
+        tg.sendData(JSON.stringify(payload));
+      });
+
+      tg.sendData(JSON.stringify({ event: "opened", timestamp: Date.now() }));
+    }
+
+    initProducts();
+    renderProducts();
+    updateCartSummary();
+  </script>
+</body>
+</html>
