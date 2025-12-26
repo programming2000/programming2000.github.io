@@ -73,7 +73,7 @@
       padding-top: 60%;
       position: relative;
       overflow: hidden;
-      background: #ffffff; /* fondo blanco para el “marco” */
+      background: #ffffff;
     }
 
     .product-image-wrapper img {
@@ -81,7 +81,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;  /* mostrar imagen completa */
+      object-fit: contain;  /* mostrar la imagen completa */
     }
 
     .product-body {
@@ -256,7 +256,7 @@
       padding-top: 70%;
       position: relative;
       overflow: hidden;
-      background: #ffffff; /* fondo blanco también en el modal */
+      background: #ffffff;
     }
 
     .modal-image-wrapper img {
@@ -264,7 +264,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain; /* mostrar imagen completa */
+      object-fit: contain;
     }
 
     .modal-body {
@@ -390,34 +390,34 @@
 
     let currentModalProductId = null;
 
-    // CARGA DE PRODUCTOS DESDE LA URL: ?products=<JSON codificado>
+    // Cargar productos desde ?products=<JSON codificado>
     function initProducts() {
       try {
         const params = new URLSearchParams(window.location.search);
         const productsParam = params.get("products");
 
         if (productsParam) {
+          // URLSearchParams ya suele decodificar %5B...%5D → [...]
           let raw = null;
-
           try {
             raw = JSON.parse(productsParam);
           } catch (e1) {
+            // Si por alguna razón viene sin decodificar, intentamos decodeURIComponent
             try {
               const decoded = decodeURIComponent(productsParam);
               raw = JSON.parse(decoded);
             } catch (e2) {
-              console.warn("Error al parsear products desde la URL:", e1, e2);
+              console.warn("Error al parsear 'products' desde la URL:", e1, e2);
             }
           }
 
           if (Array.isArray(raw) && raw.length > 0) {
             products = raw.map((p, index) => {
               const id = p.id != null ? p.id : index + 1;
-
-              const nombre = p.nombre ?? p.name ?? `Producto ${id}`;
-              const descripcion = p.descripcion ?? p.description ?? "";
-              const precio = Number(p.precio ?? p.price ?? 0) || 0;
-              const imagen =
+              const name = p.nombre ?? p.name ?? `Producto ${id}`;
+              const description = p.descripcion ?? p.description ?? "";
+              const price = Number(p.precio ?? p.price ?? 0) || 0;
+              const image =
                 p.imagen && typeof p.imagen === "string" && p.imagen.trim() !== ""
                   ? p.imagen
                   : "https://via.placeholder.com/600x400?text=Sin+Imagen";
@@ -425,10 +425,10 @@
 
               return {
                 id,
-                nombre,
-                descripcion,
-                precio,
-                imagen,
+                name,
+                description,
+                price,
+                image,
                 stock
               };
             });
@@ -436,25 +436,25 @@
           }
         }
       } catch (e) {
-        console.warn("Error general al leer products desde la URL:", e);
+        console.warn("Error general al leer 'products' desde la URL:", e);
       }
 
-      // Fallback demo si no hay datos válidos
+      // Fallback de demo para pruebas en navegador si no hay datos
       products = [
         {
           id: 1,
-          nombre: "Producto Demo 1",
-          descripcion: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
-          precio: 10.0,
-          imagen: "https://via.placeholder.com/600x400?text=Demo+1",
+          name: "Producto Demo 1",
+          description: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
+          price: 10.0,
+          image: "https://via.placeholder.com/600x400?text=Demo+1",
           stock: 5,
         },
         {
           id: 2,
-          nombre: "Producto Demo 2",
-          descripcion: "Otro ejemplo de producto.",
-          precio: 20.5,
-          imagen: "https://via.placeholder.com/600x400?text=Demo+2",
+          name: "Producto Demo 2",
+          description: "Otro ejemplo de producto.",
+          price: 20.5,
+          image: "https://via.placeholder.com/600x400?text=Demo+2",
           stock: 3,
         },
       ];
@@ -470,19 +470,19 @@
 
         const qty = cart[p.id] || 0;
         const subtotalText = qty
-          ? `${qty} u. • Bs. ${(qty * p.precio).toFixed(2)}`
+          ? `${qty} u. • Bs. ${(qty * p.price).toFixed(2)}`
           : "Sin seleccionar";
 
         card.innerHTML = `
           <div class="product-clickable">
             <div class="product-image-wrapper">
-              <img src="${p.imagen}" alt="${p.nombre}">
+              <img src="${p.image}" alt="${p.name}">
             </div>
             <div class="product-body">
-              <div class="product-name">${p.nombre}</div>
-              <div class="product-description">${p.descripcion}</div>
+              <div class="product-name">${p.name}</div>
+              <div class="product-description">${p.description}</div>
               <div class="product-price-stock">
-                <span class="price">Bs. ${p.precio.toFixed(2)}</span>
+                <span class="price">Bs. ${p.price.toFixed(2)}</span>
                 <span class="stock ${p.stock <= 3 ? "stock-low" : "stock-ok"}">
                   Stock: ${p.stock}
                 </span>
@@ -592,7 +592,7 @@
       if (qty === 0) {
         pill.textContent = "Sin seleccionar";
       } else {
-        const subtotal = product.precio * qty;
+        const subtotal = product.price * qty;
         pill.textContent = `${qty} u. • Bs. ${subtotal.toFixed(2)}`;
       }
     }
@@ -613,7 +613,7 @@
         const qty = cart[id];
         const product = products.find((x) => x.id === id);
         totalItems += qty;
-        totalAmount += qty * product.precio;
+        totalAmount += qty * product.price;
       });
 
       cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
@@ -631,11 +631,11 @@
 
       currentModalProductId = productId;
 
-      modalTitle.textContent = product.nombre;
-      modalImage.src = product.imagen;
-      modalImage.alt = product.nombre;
-      modalDescription.textContent = product.descripcion;
-      modalPrice.textContent = `Bs. ${product.precio.toFixed(2)}`;
+      modalTitle.textContent = product.name;
+      modalImage.src = product.image;
+      modalImage.alt = product.name;
+      modalDescription.textContent = product.description;
+      modalPrice.textContent = `Bs. ${product.price.toFixed(2)}`;
       modalStock.textContent = `Stock: ${product.stock}`;
       modalStock.className =
         "stock " + (product.stock <= 3 ? "stock-low" : "stock-ok");
@@ -662,7 +662,7 @@
       if (qty > product.stock) qty = product.stock;
       modalQtyInput.value = qty;
 
-      const subtotal = qty * product.precio;
+      const subtotal = qty * product.price;
       modalSubtotal.textContent = `Subtotal: Bs. ${subtotal.toFixed(2)}`;
     }
 
@@ -703,4 +703,50 @@
 
       modalQtyInput.value = qty;
       updateModalSubtotal();
-      setQty(currentModalProduct
+      setQty(currentModalProductId, qty);
+      syncCardQty(currentModalProductId, qty);
+    });
+
+    function syncCardQty(productId, qty) {
+      const wrapper = productsContainer.querySelector(
+        `.qty-wrapper[data-id="${productId}"]`
+      );
+      if (!wrapper) return;
+      const input = wrapper.querySelector(".qty-input");
+      if (input) {
+        input.value = qty;
+      }
+    }
+
+    if (tg) {
+      tg.onEvent("mainButtonClicked", () => {
+        const items = Object.keys(cart).map((idStr) => {
+          const id = Number(idStr);
+          const product = products.find((x) => x.id === id);
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            qty: cart[id],
+            subtotal: product.price * cart[id],
+          };
+        });
+
+        const payload = {
+          event: "order_submitted",
+          total_items: items.reduce((acc, i) => acc + i.qty, 0),
+          total_amount: items.reduce((acc, i) => acc + i.subtotal, 0),
+          items,
+          timestamp: Date.now(),
+        };
+
+        tg.sendData(JSON.stringify(payload));
+      });
+    }
+
+    initProducts();
+    renderProducts();
+    updateCartSummary();
+  </script>
+</body>
+</html>
