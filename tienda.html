@@ -388,46 +388,64 @@
 
     let currentModalProductId = null;
 
-    // Carga de productos desde window.PRODUCTS (o demo)
+    // CARGA DE PRODUCTOS DESDE LA URL: ?products=<JSON codificado>
     function initProducts() {
-      const src = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : null;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const productsParam = params.get("products");
 
-      if (src && src.length > 0) {
-        products = src.map((p, index) => {
-          const id = p.id != null ? p.id : index + 1;
+        if (productsParam) {
+          const decoded = decodeURIComponent(productsParam);
+          const raw = JSON.parse(decoded);
 
-          const nombre = p.nombre ?? p.name ?? `Producto ${id}`;
-          const descripcion = p.descripcion ?? p.description ?? "";
-          const precio = Number(p.precio ?? p.price ?? 0) || 0;
-          const imagen =
-            p.imagen ??
-            p.image ??
-            "https://via.placeholder.com/600x400?text=Producto";
-          const stock = Number(p.stock ?? 0) || 0;
+          if (Array.isArray(raw) && raw.length > 0) {
+            products = raw.map((p, index) => {
+              const id = p.id != null ? p.id : index + 1;
 
-          return { id, name: nombre, description: descripcion, price: precio, image: imagen, stock };
-        });
-      } else {
-        // Productos de demo si no se pasa nada
-        products = [
-          {
-            id: 1,
-            name: "Producto Demo 1",
-            description: "Ejemplo de producto. Pásame tus productos en window.PRODUCTS.",
-            price: 10.0,
-            image: "https://via.placeholder.com/600x400?text=Demo+1",
-            stock: 5,
-          },
-          {
-            id: 2,
-            name: "Producto Demo 2",
-            description: "Otro ejemplo de producto.",
-            price: 20.5,
-            image: "https://via.placeholder.com/600x400?text=Demo+2",
-            stock: 3,
-          },
-        ];
+              const nombre = p.nombre ?? p.name ?? `Producto ${id}`;
+              const descripcion = p.descripcion ?? p.description ?? "";
+              const precio = Number(p.precio ?? p.price ?? 0) || 0;
+              const imagen =
+                p.imagen ??
+                p.image ??
+                "https://via.placeholder.com/600x400?text=Producto";
+              const stock = Number(p.stock ?? 0) || 0;
+
+              return {
+                id,
+                name: nombre,
+                description: descripcion,
+                price: precio,
+                image: imagen,
+                stock
+              };
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Error al leer products desde la URL:", e);
       }
+
+      // Fallback demo si no hay datos válidos
+      products = [
+        {
+          id: 1,
+          name: "Producto Demo 1",
+          description: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
+          price: 10.0,
+          image: "https://via.placeholder.com/600x400?text=Demo+1",
+          stock: 5,
+        },
+        {
+          id: 2,
+          name: "Producto Demo 2",
+          description: "Otro ejemplo de producto.",
+          price: 20.5,
+          image: "https://via.placeholder.com/600x400?text=Demo+2",
+          stock: 3,
+        },
+      ];
     }
 
     function renderProducts() {
@@ -711,10 +729,8 @@
           timestamp: Date.now(),
         };
 
-        tg.sendData(JSON.stringify(payload));
+        tg.sendData(JSON.stringify(payload)); // Aquí sí se cerrará la miniapp al enviar el pedido
       });
-
-      
     }
 
     initProducts();
