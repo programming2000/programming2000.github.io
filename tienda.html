@@ -73,6 +73,7 @@
       padding-top: 60%;
       position: relative;
       overflow: hidden;
+      background: #ffffff; /* fondo blanco para el “marco” */
     }
 
     .product-image-wrapper img {
@@ -80,7 +81,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;  /* mostrar imagen completa */
     }
 
     .product-body {
@@ -255,6 +256,7 @@
       padding-top: 70%;
       position: relative;
       overflow: hidden;
+      background: #ffffff; /* fondo blanco también en el modal */
     }
 
     .modal-image-wrapper img {
@@ -262,7 +264,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain; /* mostrar imagen completa */
     }
 
     .modal-body {
@@ -309,9 +311,9 @@
 </head>
 <body>
   <div class="app-header">
-    <div class="app-title">🛒 Catálogo de Productos</div>
+    <div class="app-title">🛒 Tienda 🛍️</div>
     <div class="app-subtitle">
-      Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.
+      Grandes ofertas, precios bajos y productos que te encantarán.
     </div>
   </div>
 
@@ -394,16 +396,12 @@
         const params = new URLSearchParams(window.location.search);
         const productsParam = params.get("products");
 
-        console.log("productsParam:", productsParam);
-
         if (productsParam) {
           let raw = null;
 
-          // 1) Intentar parsear directamente (URLSearchParams ya suele decodificar %xx)
           try {
             raw = JSON.parse(productsParam);
           } catch (e1) {
-            // 2) Si falla, intentar decodificar manualmente y parsear
             try {
               const decoded = decodeURIComponent(productsParam);
               raw = JSON.parse(decoded);
@@ -420,28 +418,22 @@
               const descripcion = p.descripcion ?? p.description ?? "";
               const precio = Number(p.precio ?? p.price ?? 0) || 0;
               const imagen =
-                p.imagen ??
-                p.image ??
-                "https://via.placeholder.com/600x400?text=Producto";
+                p.imagen && typeof p.imagen === "string" && p.imagen.trim() !== ""
+                  ? p.imagen
+                  : "https://via.placeholder.com/600x400?text=Sin+Imagen";
               const stock = Number(p.stock ?? 0) || 0;
 
               return {
                 id,
-                name: nombre,
-                description: descripcion,
-                price: precio,
-                image: imagen,
+                nombre,
+                descripcion,
+                precio,
+                imagen,
                 stock
               };
             });
-
-            console.log("Productos cargados desde URL:", products);
             return;
-          } else {
-            console.warn("El parámetro products existe pero no contiene un array válido.");
           }
-        } else {
-          console.warn("No se encontró parámetro 'products' en la URL.");
         }
       } catch (e) {
         console.warn("Error general al leer products desde la URL:", e);
@@ -451,18 +443,18 @@
       products = [
         {
           id: 1,
-          name: "Producto Demo 1",
-          description: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
-          price: 10.0,
-          image: "https://via.placeholder.com/600x400?text=Demo+1",
+          nombre: "Producto Demo 1",
+          descripcion: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
+          precio: 10.0,
+          imagen: "https://via.placeholder.com/600x400?text=Demo+1",
           stock: 5,
         },
         {
           id: 2,
-          name: "Producto Demo 2",
-          description: "Otro ejemplo de producto.",
-          price: 20.5,
-          image: "https://via.placeholder.com/600x400?text=Demo+2",
+          nombre: "Producto Demo 2",
+          descripcion: "Otro ejemplo de producto.",
+          precio: 20.5,
+          imagen: "https://via.placeholder.com/600x400?text=Demo+2",
           stock: 3,
         },
       ];
@@ -478,19 +470,19 @@
 
         const qty = cart[p.id] || 0;
         const subtotalText = qty
-          ? `${qty} u. • Bs. ${(qty * p.price).toFixed(2)}`
+          ? `${qty} u. • Bs. ${(qty * p.precio).toFixed(2)}`
           : "Sin seleccionar";
 
         card.innerHTML = `
           <div class="product-clickable">
             <div class="product-image-wrapper">
-              <img src="${p.image}" alt="${p.name}">
+              <img src="${p.imagen}" alt="${p.nombre}">
             </div>
             <div class="product-body">
-              <div class="product-name">${p.name}</div>
-              <div class="product-description">${p.description}</div>
+              <div class="product-name">${p.nombre}</div>
+              <div class="product-description">${p.descripcion}</div>
               <div class="product-price-stock">
-                <span class="price">Bs. ${p.price.toFixed(2)}</span>
+                <span class="price">Bs. ${p.precio.toFixed(2)}</span>
                 <span class="stock ${p.stock <= 3 ? "stock-low" : "stock-ok"}">
                   Stock: ${p.stock}
                 </span>
@@ -600,7 +592,7 @@
       if (qty === 0) {
         pill.textContent = "Sin seleccionar";
       } else {
-        const subtotal = product.price * qty;
+        const subtotal = product.precio * qty;
         pill.textContent = `${qty} u. • Bs. ${subtotal.toFixed(2)}`;
       }
     }
@@ -621,7 +613,7 @@
         const qty = cart[id];
         const product = products.find((x) => x.id === id);
         totalItems += qty;
-        totalAmount += qty * product.price;
+        totalAmount += qty * product.precio;
       });
 
       cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
@@ -639,11 +631,11 @@
 
       currentModalProductId = productId;
 
-      modalTitle.textContent = product.name;
-      modalImage.src = product.image;
-      modalImage.alt = product.name;
-      modalDescription.textContent = product.description;
-      modalPrice.textContent = `Bs. ${product.price.toFixed(2)}`;
+      modalTitle.textContent = product.nombre;
+      modalImage.src = product.imagen;
+      modalImage.alt = product.nombre;
+      modalDescription.textContent = product.descripcion;
+      modalPrice.textContent = `Bs. ${product.precio.toFixed(2)}`;
       modalStock.textContent = `Stock: ${product.stock}`;
       modalStock.className =
         "stock " + (product.stock <= 3 ? "stock-low" : "stock-ok");
@@ -652,7 +644,6 @@
       modalQtyInput.max = String(product.stock);
       modalQtyInput.value = currentQty;
       updateModalSubtotal();
-
       productModal.classList.add("show");
     }
 
@@ -671,7 +662,7 @@
       if (qty > product.stock) qty = product.stock;
       modalQtyInput.value = qty;
 
-      const subtotal = qty * product.price;
+      const subtotal = qty * product.precio;
       modalSubtotal.textContent = `Subtotal: Bs. ${subtotal.toFixed(2)}`;
     }
 
@@ -712,50 +703,4 @@
 
       modalQtyInput.value = qty;
       updateModalSubtotal();
-      setQty(currentModalProductId, qty);
-      syncCardQty(currentModalProductId, qty);
-    });
-
-    function syncCardQty(productId, qty) {
-      const wrapper = productsContainer.querySelector(
-        `.qty-wrapper[data-id="${productId}"]`
-      );
-      if (!wrapper) return;
-      const input = wrapper.querySelector(".qty-input");
-      if (input) {
-        input.value = qty;
-      }
-    }
-
-    if (tg) {
-      tg.onEvent("mainButtonClicked", () => {
-        const items = Object.keys(cart).map((idStr) => {
-          const id = Number(idStr);
-          const product = products.find((x) => x.id === id);
-          return {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            qty: cart[id],
-            subtotal: product.price * cart[id],
-          };
-        });
-
-        const payload = {
-          event: "order_submitted",
-          total_items: items.reduce((acc, i) => acc + i.qty, 0),
-          total_amount: items.reduce((acc, i) => acc + i.subtotal, 0),
-          items,
-          timestamp: Date.now(),
-        };
-
-        tg.sendData(JSON.stringify(payload));
-      });
-    }
-
-    initProducts();
-    renderProducts();
-    updateCartSummary();
-  </script>
-</body>
-</html>
+      setQty(currentModalProduct
