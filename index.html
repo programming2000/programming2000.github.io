@@ -604,10 +604,10 @@
 
   <!-- PASO 4: RESUMEN FINAL -->
   <div id="step4" class="step">
-    <div class="section-title">Revisa tu pedido</div>
-    <div class="section-text">
-      Verifica todos los datos antes de enviar el pedido al vendedor.
-    </div>
+    <!-- <div class="section-title">✅ Revisa tu pedido</div> -->
+    <!-- <div class="section-text"> -->
+      <!-- Verifica todos los datos antes de enviar el pedido al vendedor. -->
+    <!-- </div> -->
 
     <div class="card">
       <div class="field-label">Productos seleccionados</div>
@@ -758,7 +758,7 @@
 
     let currentModalProductId = null;
 
-    // Definición de métodos de pago conocidos
+    // Métodos de pago conocidos
     const creditDefinitions = {
       apueston: {
         value: "credito_apueston",
@@ -804,7 +804,40 @@
       return "";
     }
 
-    // Inicializar mapa con centro en Bolivia
+    // --------- MAPA: init y manejo de marcador draggable ---------
+
+    function setUserLocation(lat, lng, source) {
+      deliveryLat = lat;
+      deliveryLng = lng;
+
+      const latlng = [lat, lng];
+
+      if (!userMarker) {
+        userMarker = L.marker(latlng, { draggable: true }).addTo(map);
+        userMarker.on("dragend", (e) => {
+          const pos = e.target.getLatLng();
+          deliveryLat = pos.lat;
+          deliveryLng = pos.lng;
+          locationStatus.textContent =
+            `Ubicación ajustada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+        });
+      } else {
+        userMarker.setLatLng(latlng);
+      }
+
+      const label =
+        source === "drag"
+          ? "Ubicación ajustada"
+          : source === "click"
+          ? "Ubicación seleccionada"
+          : "Ubicación seleccionada";
+
+      locationStatus.textContent =
+        `${label}: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+
+      map.setView(latlng, 17, { animate: true });
+    }
+
     function initMap() {
       const bolCenter = [-16.29, -63.59]; // Bolivia
       map = L.map('map').setView(bolCenter, 6);
@@ -813,6 +846,11 @@
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
+
+      // Permitir seleccionar lugar haciendo tap en el mapa
+      map.on("click", (e) => {
+        setUserLocation(e.latlng.lat, e.latlng.lng, "click");
+      });
     }
 
     // Totales del carrito
@@ -878,6 +916,12 @@
         step2.classList.add("step-active");
         headerTitle.textContent = "📍 Datos de entrega";
         headerSubtitle.textContent = "Selecciona tu ubicación, referencia y número de teléfono.";
+        // Ajustar mapa al hacerse visible
+        if (map) {
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 200);
+        }
       } else if (step === 3) {
         step3.classList.add("step-active");
         headerTitle.textContent = "💳 Método de pago";
@@ -1278,27 +1322,14 @@
       locationStatus.textContent = "Obteniendo ubicación...";
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          deliveryLat = pos.coords.latitude;
-          deliveryLng = pos.coords.longitude;
-          locationStatus.textContent =
-            `Ubicación seleccionada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
-
-          if (map) {
-            const latlng = [deliveryLat, deliveryLng];
-
-            if (!userMarker) {
-              userMarker = L.marker(latlng).addTo(map);
-            } else {
-              userMarker.setLatLng(latlng);
-            }
-
-            map.setView(latlng, 17, { animate: true });
-          }
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserLocation(lat, lng, "geoloc");
         },
         (err) => {
           console.warn("Error geolocalización:", err);
           locationStatus.textContent =
-            "No se pudo obtener tu ubicación. Debes habilitar el permiso para continuar.";
+            "No se pudo obtener tu ubicación. Puedes seleccionarla tocando el mapa o habilitar permisos.";
         }
       );
     });
@@ -1382,7 +1413,7 @@
             return;
           }
           if (deliveryLat == null || deliveryLng == null) {
-            alert("Por favor selecciona tu ubicación precisa con el botón 'Usar mi ubicación actual'.");
+            alert("Por favor selecciona tu ubicación precisa tocando el mapa o usando el botón 'Usar mi ubicación actual'.");
             return;
           }
 
