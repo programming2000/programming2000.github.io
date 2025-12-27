@@ -32,7 +32,7 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .app-title {
@@ -43,6 +43,35 @@
     .app-subtitle {
       font-size: 0.9rem;
       color: var(--muted);
+    }
+
+    /* NAV DE PASOS */
+
+    .steps-nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .step-nav-btn {
+      flex: 1;
+      min-width: 0;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 4px 6px;
+      font-size: 0.8rem;
+      background: #f9fafb;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .step-nav-btn.step-nav-active {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
     }
 
     .step { display: none; }
@@ -123,11 +152,8 @@
     }
 
     .price { font-weight: 700; }
-
     .stock { font-size: 0.75rem; }
-
     .stock-low { color: var(--danger); }
-
     .stock-ok { color: var(--success); }
 
     .product-footer {
@@ -431,18 +457,6 @@
       color: var(--muted);
     }
 
-    .summary-card {
-      margin-top: 10px;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-
     /* PASO 4: RESUMEN FINAL */
 
     .items-list {
@@ -476,6 +490,13 @@
       color: var(--muted);
     }
 
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+    }
+
     .badge {
       display: inline-block;
       padding: 2px 8px;
@@ -493,6 +514,14 @@
     <div class="app-subtitle" id="headerSubtitle">
       Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.
     </div>
+  </div>
+
+  <!-- NAV PASOS -->
+  <div class="steps-nav">
+    <button class="step-nav-btn step-nav-active" data-step="1">1. Productos</button>
+    <button class="step-nav-btn" data-step="2">2. Entrega</button>
+    <button class="step-nav-btn" data-step="3">3. Pago</button>
+    <button class="step-nav-btn" data-step="4">4. Resumen</button>
   </div>
 
   <!-- PASO 1: PRODUCTOS -->
@@ -555,7 +584,7 @@
     </div>
   </div>
 
-  <!-- PASO 3: PAGO -->
+  <!-- PASO 3: PAGO (sin resumen) -->
   <div id="step3" class="step">
     <div class="section-title">💳 Método de pago</div>
     <div class="section-text">
@@ -564,28 +593,6 @@
 
     <div class="card">
       <div id="paymentOptions" class="payment-options"></div>
-    </div>
-
-    <div class="card summary-card">
-      <div class="summary-row">
-        <span>Productos:</span>
-        <span id="summaryItems">0</span>
-      </div>
-      <div class="summary-row">
-        <span>Total:</span>
-        <span id="summaryTotal">Bs. 0.00</span>
-      </div>
-      <div class="summary-row">
-        <span>Teléfono:</span>
-        <span id="summaryPhone">-</span>
-      </div>
-      <div class="summary-row">
-        <span>Referencia:</span>
-        <span id="summaryRef">-</span>
-      </div>
-      <div class="helper-text" style="margin-top:6px;">
-        Revisa que tus datos sean correctos antes de continuar.
-      </div>
     </div>
   </div>
 
@@ -696,7 +703,7 @@
     let deliveryLng = null;
 
     // Pago
-    let selectedPaymentMethod = null; // valor interno (transferencia, credito_apueston, etc.)
+    let selectedPaymentMethod = null;
 
     const productsContainer = document.getElementById("productsContainer");
     const cartInfo = document.getElementById("cartInfo");
@@ -709,16 +716,13 @@
     const step3 = document.getElementById("step3");
     const step4 = document.getElementById("step4");
 
+    const stepsNavButtons = document.querySelectorAll(".step-nav-btn");
+
     const btnUseLocation = document.getElementById("btnUseLocation");
     const locationStatus = document.getElementById("locationStatus");
     const mapFrame = document.getElementById("mapFrame");
     const deliveryReferenceInput = document.getElementById("deliveryReference");
     const deliveryPhoneInput = document.getElementById("deliveryPhone");
-
-    const summaryItems = document.getElementById("summaryItems");
-    const summaryTotal = document.getElementById("summaryTotal");
-    const summaryPhone = document.getElementById("summaryPhone");
-    const summaryRef = document.getElementById("summaryRef");
 
     const finalItemsList = document.getElementById("finalItemsList");
     const finalItemsCount = document.getElementById("finalItemsCount");
@@ -791,7 +795,7 @@
       return "";
     }
 
-    // Utilidad: totales del carrito
+    // Totales del carrito
     function getCartTotals() {
       let totalItems = 0;
       let totalAmount = 0;
@@ -808,6 +812,14 @@
       return { totalItems, totalAmount };
     }
 
+    // Actualizar nav de pasos
+    function updateStepsNav() {
+      stepsNavButtons.forEach(btn => {
+        const step = Number(btn.dataset.step);
+        btn.classList.toggle("step-nav-active", step === currentStep);
+      });
+    }
+
     // Actualizar botón principal según paso
     function updateMainButton() {
       if (!tg) return;
@@ -820,10 +832,7 @@
           tg.MainButton.setText(`Continuar • Bs. ${totalAmount.toFixed(2)}`);
           tg.MainButton.show();
         }
-      } else if (currentStep === 2) {
-        tg.MainButton.setText("Continuar");
-        tg.MainButton.show();
-      } else if (currentStep === 3) {
+      } else if (currentStep === 2 || currentStep === 3) {
         tg.MainButton.setText("Continuar");
         tg.MainButton.show();
       } else if (currentStep === 4) {
@@ -852,8 +861,7 @@
       } else if (step === 3) {
         step3.classList.add("step-active");
         headerTitle.textContent = "💳 Método de pago";
-        headerSubtitle.textContent = "Elige cómo pagarás y revisa tus datos.";
-        actualizarResumenPaso3();
+        headerSubtitle.textContent = "Elige cómo pagarás tu pedido.";
       } else if (step === 4) {
         step4.classList.add("step-active");
         headerTitle.textContent = "✅ Confirmar pedido";
@@ -861,6 +869,7 @@
         actualizarResumenPaso4();
       }
 
+      updateStepsNav();
       updateMainButton();
     }
 
@@ -986,6 +995,13 @@
 
       // Créditos adicionales según parámetro
       extraMethods.forEach(def => createPaymentItem(def));
+
+      // Actualizar selectedPaymentMethod cuando el usuario cambia radio
+      paymentOptionsContainer.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "paymentMethod") {
+          selectedPaymentMethod = e.target.value;
+        }
+      });
     }
 
     function renderProducts() {
@@ -1258,19 +1274,6 @@
       );
     });
 
-    // Resumen del paso 3
-    function actualizarResumenPaso3() {
-      const { totalItems, totalAmount } = getCartTotals();
-      summaryItems.textContent = totalItems;
-      summaryTotal.textContent = `Bs. ${totalAmount.toFixed(2)}`;
-
-      const phone = deliveryPhoneInput.value.trim();
-      summaryPhone.textContent = phone || "-";
-
-      const ref = deliveryReferenceInput.value.trim();
-      summaryRef.textContent = ref || "-";
-    }
-
     // Resumen del paso 4
     function actualizarResumenPaso4() {
       const { totalItems, totalAmount } = getCartTotals();
@@ -1318,6 +1321,14 @@
       finalPaymentDetail.textContent = getPaymentDetail(selectedPaymentMethod);
     }
 
+    // Navegación manual por los botones de pasos
+    stepsNavButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const step = Number(btn.dataset.step);
+        goToStep(step);
+      });
+    });
+
     // Manejo del botón principal de Telegram (multi-paso)
     if (tg) {
       tg.onEvent("mainButtonClicked", () => {
@@ -1344,16 +1355,38 @@
 
           goToStep(3);
         } else if (currentStep === 3) {
-          const selected = document.querySelector('input[name="paymentMethod"]:checked');
-          if (!selected) {
-            alert("Por favor selecciona un método de pago.");
-            return;
+          if (!selectedPaymentMethod) {
+            const selected = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!selected) {
+              alert("Por favor selecciona un método de pago.");
+              return;
+            }
+            selectedPaymentMethod = selected.value;
           }
-          selectedPaymentMethod = selected.value;
           goToStep(4);
         } else if (currentStep === 4) {
+          // Validaciones extra por si el usuario se saltó pasos con la nav
           if (totalItems === 0) {
             alert("Tu carrito está vacío.");
+            goToStep(1);
+            return;
+          }
+
+          const ref = deliveryReferenceInput.value.trim();
+          const phone = deliveryPhoneInput.value.trim();
+          if (!ref) {
+            alert("Falta la referencia de entrega. Complétala en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (!phone) {
+            alert("Falta el número de teléfono. Complétalo en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (!selectedPaymentMethod) {
+            alert("Falta seleccionar el método de pago. Hazlo en el paso 3.");
+            goToStep(3);
             return;
           }
 
@@ -1377,8 +1410,8 @@
             delivery: {
               lat: deliveryLat,
               lng: deliveryLng,
-              reference: deliveryReferenceInput.value.trim(),
-              phone: deliveryPhoneInput.value.trim(),
+              reference: ref,
+              phone: phone,
             },
             payment_method: selectedPaymentMethod,
             timestamp: Date.now(),
@@ -1394,6 +1427,7 @@
     initPaymentOptions();
     renderProducts();
     updateCartSummary();
+    updateStepsNav();
     updateMainButton();
   </script>
 </body>
