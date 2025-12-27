@@ -1,47 +1,1171 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>MiniApp con MainButton</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiniApp • Catálogo de Productos</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body {
-      text-align: center;
-      padding: 30px;
-      font-family: sans-serif;
+    :root {
+      --primary: #4a90e2;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #222222;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --danger: #e11d48;
+      --success: #16a34a;
+      --backdrop: rgba(15, 23, 42, 0.35);
     }
-    input {
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 12px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .app-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .app-subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .step {
+      display: none;
+    }
+
+    .step-active {
+      display: block;
+    }
+
+    /* PRODUCTOS */
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .product-card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+      cursor: pointer;
+    }
+
+    .product-clickable {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .product-image-wrapper {
+      width: 100%;
+      padding-top: 60%;
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .product-image-wrapper img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;  /* Mostrar imagen completa */
+    }
+
+    .product-body {
+      padding: 10px 10px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .product-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .product-description {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.3;
+      min-height: 2.4em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .product-price-stock {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 0.8rem;
+    }
+
+    .price { font-weight: 700; }
+
+    .stock { font-size: 0.75rem; }
+
+    .stock-low { color: var(--danger); }
+
+    .stock-ok { color: var(--success); }
+
+    .product-footer {
+      padding: 8px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .qty-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .qty-btn {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 1rem;
+      cursor: pointer;
+      outline: none;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .qty-btn:active {
+      background: rgba(15, 23, 42, 0.06);
+    }
+
+    .qty-input {
+      width: 48px;
+      text-align: center;
+      font-size: 0.85rem;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .qty-input:focus {
+      border-color: var(--primary);
+    }
+
+    .cart-pill {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .cart-summary {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: linear-gradient(to top, var(--bg) 80%, transparent);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cart-summary-label { color: var(--muted); }
+
+    .cart-summary-main { font-weight: 600; }
+
+    .badge-empty { color: var(--muted); }
+
+    /* MODAL DETALLE PRODUCTO */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--backdrop);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card);
+      border-radius: 16px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+    }
+
+    .modal-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      line-height: 1;
+    }
+
+    .modal-image-wrapper {
+      width: 100%;
+      padding-top: 70%;
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .modal-image-wrapper img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .modal-body {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+
+    .modal-description {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .modal-price-stock {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .modal-footer {
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .modal-qty-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .modal-subtotal {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* PASO 2: ENTREGA */
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .section-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
       padding: 10px;
-      width: 80%;
-      max-width: 300px;
-      font-size: 16px;
-      margin-top: 20px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+    }
+
+    .map-container {
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .map-container iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      background: #f9fafb;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .field-input, .field-textarea {
+      width: 100%;
+      font-size: 0.9rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .field-input:focus, .field-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .field-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .helper-text {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* PASO 3: PAGO */
+
+    .payment-options {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .payment-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .payment-item input[type="radio"] {
+      transform: scale(1.1);
+    }
+
+    .payment-label-main {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .payment-label-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .summary-card {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
+  <div class="app-header">
+    <div class="app-title" id="headerTitle">🛒 Catálogo de Productos</div>
+    <div class="app-subtitle" id="headerSubtitle">
+      Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.
+    </div>
+  </div>
 
-  <h2>MiniApp de Prueba con MainButton</h2>
-  <p>Escribe algo y presiona el botón de Telegram para enviarlo al bot.</p>
+  <!-- PASO 1: PRODUCTOS -->
+  <div id="step1" class="step step-active">
+    <div id="productsContainer" class="products-grid"></div>
 
-  <input type="text" id="userInput" placeholder="Escribe tu mensaje aquí">
+    <div id="cartSummary" class="cart-summary">
+      <span class="cart-summary-label">Total:</span>
+      <span id="cartInfo" class="cart-summary-main badge-empty">Bs. 0.00 (0 prod.)</span>
+    </div>
+  </div>
+
+  <!-- PASO 2: ENTREGA -->
+  <div id="step2" class="step">
+    <div class="section-title">📍 Datos de entrega</div>
+    <div class="section-text">
+      Selecciona tu ubicación, ingresa una referencia para encontrar el lugar y tu número de teléfono.
+    </div>
+
+    <div class="card">
+      <div class="field-label">Ubicación en el mapa</div>
+      <button id="btnUseLocation" class="btn-secondary">Usar mi ubicación actual</button>
+      <div id="locationStatus" class="helper-text" style="margin-top:4px;">
+        Aún no se ha seleccionado una ubicación.
+      </div>
+      <div class="map-container" style="margin-top:8px;">
+        <iframe
+          id="mapFrame"
+          src="https://www.openstreetmap.org/export/embed.html?layer=mapnik&zoom=3"
+        ></iframe>
+      </div>
+      <div class="helper-text">
+        El mapa se actualizará cuando se obtenga tu ubicación (si el dispositivo lo permite).
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-group">
+        <label for="deliveryReference" class="field-label">Referencia de entrega *</label>
+        <textarea
+          id="deliveryReference"
+          class="field-textarea"
+          placeholder="Ej: Casa con puerta azul frente a la plaza, tercer piso, timbre 3B..."
+        ></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="deliveryPhone" class="field-label">Número de teléfono *</label>
+        <input
+          id="deliveryPhone"
+          class="field-input"
+          type="tel"
+          inputmode="tel"
+          placeholder="Ej: 71234567"
+        />
+        <div class="helper-text">
+          Usaremos este número para confirmar tu pedido.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 3: PAGO -->
+  <div id="step3" class="step">
+    <div class="section-title">💳 Método de pago</div>
+    <div class="section-text">
+      Elige cómo quieres pagar tu pedido.
+    </div>
+
+    <div class="card">
+      <div class="payment-options">
+        <label class="payment-item">
+          <input type="radio" name="paymentMethod" value="transferencia" />
+          <div>
+            <div class="payment-label-main">Transferencia bancaria</div>
+            <div class="payment-label-sub">Te enviaremos los datos para transferir.</div>
+          </div>
+        </label>
+
+        <label class="payment-item">
+          <input type="radio" name="paymentMethod" value="credito_apueston" />
+          <div>
+            <div class="payment-label-main">Crédito Apueston</div>
+            <div class="payment-label-sub">Usarás tu saldo de crédito en Apueston.</div>
+          </div>
+        </label>
+
+        <label class="payment-item">
+          <input type="radio" name="paymentMethod" value="credito_metabet" />
+          <div>
+            <div class="payment-label-main">Crédito Metabet</div>
+            <div class="payment-label-sub">Usarás tu saldo de crédito en Metabet.</div>
+          </div>
+        </label>
+
+        <label class="payment-item">
+          <input type="radio" name="paymentMethod" value="credito_pppoker_us" />
+          <div>
+            <div class="payment-label-main">Crédito PPPoker USA</div>
+            <div class="payment-label-sub">Usarás tu crédito en PPPoker (US).</div>
+          </div>
+        </label>
+
+        <label class="payment-item">
+          <input type="radio" name="paymentMethod" value="credito_pppoker_sol" />
+          <div>
+            <div class="payment-label-main">Crédito PPPoker Sol</div>
+            <div class="payment-label-sub">Usarás tu crédito en PPPoker (Sol).</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="card summary-card">
+      <div class="summary-row">
+        <span>Productos:</span>
+        <span id="summaryItems">0</span>
+      </div>
+      <div class="summary-row">
+        <span>Total:</span>
+        <span id="summaryTotal">Bs. 0.00</span>
+      </div>
+      <div class="summary-row">
+        <span>Teléfono:</span>
+        <span id="summaryPhone">-</span>
+      </div>
+      <div class="summary-row">
+        <span>Referencia:</span>
+        <span id="summaryRef">-</span>
+      </div>
+      <div class="helper-text" style="margin-top:6px;">
+        Revisa que tus datos sean correctos antes de enviar el pedido.
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE PRODUCTO -->
+  <div id="productModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">Producto</div>
+        <button id="modalClose" class="modal-close" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-image-wrapper">
+        <img id="modalImage" src="" alt="Producto">
+      </div>
+      <div class="modal-body">
+        <div id="modalDescription" class="modal-description"></div>
+        <div class="modal-price-stock">
+          <span id="modalPrice" class="price">Bs. 0.00</span>
+          <span id="modalStock" class="stock">Stock: 0</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-qty-label">Cantidad para este producto:</div>
+        <div class="qty-wrapper" id="modalQtyWrapper">
+          <button class="qty-btn" data-action="dec">−</button>
+          <input
+            type="number"
+            class="qty-input"
+            id="modalQtyInput"
+            value="0"
+            min="0"
+            inputmode="numeric"
+          />
+          <button class="qty-btn" data-action="inc">+</button>
+        </div>
+        <div id="modalSubtotal" class="modal-subtotal">Subtotal: Bs. 0.00</div>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand && tg.expand();
+      document.documentElement.style.setProperty(
+        "--primary",
+        tg.themeParams.button_color || "#4a90e2"
+      );
+    }
 
-    tg.MainButton.setText("Enviar mensaje al bot");
-    tg.MainButton.show();
+    let products = [];
+    const cart = {}; // { productId: qty }
+    let currentStep = 1;
 
-    tg.MainButton.onClick(() => {
-      const inputValue = document.getElementById("userInput").value;
-      console.log("➡️ Enviando desde MainButton:", inputValue);
-      tg.sendData(inputValue); // Envía el contenido del input
+    // Entrega
+    let deliveryLat = null;
+    let deliveryLng = null;
+
+    const productsContainer = document.getElementById("productsContainer");
+    const cartInfo = document.getElementById("cartInfo");
+
+    const headerTitle = document.getElementById("headerTitle");
+    const headerSubtitle = document.getElementById("headerSubtitle");
+
+    const step1 = document.getElementById("step1");
+    const step2 = document.getElementById("step2");
+    const step3 = document.getElementById("step3");
+
+    const btnUseLocation = document.getElementById("btnUseLocation");
+    const locationStatus = document.getElementById("locationStatus");
+    const mapFrame = document.getElementById("mapFrame");
+    const deliveryReferenceInput = document.getElementById("deliveryReference");
+    const deliveryPhoneInput = document.getElementById("deliveryPhone");
+
+    const summaryItems = document.getElementById("summaryItems");
+    const summaryTotal = document.getElementById("summaryTotal");
+    const summaryPhone = document.getElementById("summaryPhone");
+    const summaryRef = document.getElementById("summaryRef");
+
+    // Modal
+    const productModal = document.getElementById("productModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalImage = document.getElementById("modalImage");
+    const modalDescription = document.getElementById("modalDescription");
+    const modalPrice = document.getElementById("modalPrice");
+    const modalStock = document.getElementById("modalStock");
+    const modalClose = document.getElementById("modalClose");
+    const modalQtyInput = document.getElementById("modalQtyInput");
+    const modalSubtotal = document.getElementById("modalSubtotal");
+    const modalQtyWrapper = document.getElementById("modalQtyWrapper");
+
+    let currentModalProductId = null;
+
+    // Utilidad: totales del carrito
+    function getCartTotals() {
+      let totalItems = 0;
+      let totalAmount = 0;
+
+      Object.keys(cart).forEach((idStr) => {
+        const id = Number(idStr);
+        const qty = cart[id];
+        const product = products.find((x) => x.id === id);
+        if (!product) return;
+        totalItems += qty;
+        totalAmount += qty * product.price;
+      });
+
+      return { totalItems, totalAmount };
+    }
+
+    // Actualizar botón principal según paso
+    function updateMainButton() {
+      if (!tg) return;
+      const { totalItems, totalAmount } = getCartTotals();
+
+      if (currentStep === 1) {
+        if (totalItems === 0) {
+          tg.MainButton.hide();
+        } else {
+          tg.MainButton.setText(`Continuar • Bs. ${totalAmount.toFixed(2)}`);
+          tg.MainButton.show();
+        }
+      } else if (currentStep === 2) {
+        tg.MainButton.setText("Continuar");
+        tg.MainButton.show();
+      } else if (currentStep === 3) {
+        if (totalItems === 0) {
+          tg.MainButton.hide();
+        } else {
+          tg.MainButton.setText(`Enviar pedido • Bs. ${totalAmount.toFixed(2)}`);
+          tg.MainButton.show();
+        }
+      }
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+
+      step1.classList.remove("step-active");
+      step2.classList.remove("step-active");
+      step3.classList.remove("step-active");
+
+      if (step === 1) {
+        step1.classList.add("step-active");
+        headerTitle.textContent = "🛒 Catálogo de Productos";
+        headerSubtitle.textContent = "Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.";
+      } else if (step === 2) {
+        step2.classList.add("step-active");
+        headerTitle.textContent = "📍 Datos de entrega";
+        headerSubtitle.textContent = "Selecciona tu ubicación, referencia y número de teléfono.";
+      } else if (step === 3) {
+        step3.classList.add("step-active");
+        headerTitle.textContent = "💳 Método de pago";
+        headerSubtitle.textContent = "Elige cómo pagarás y confirma tu pedido.";
+        actualizarResumenPaso3();
+      }
+
+      updateMainButton();
+    }
+
+    // Cargar productos desde ?products=<JSON codificado>
+    function initProducts() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const productsParam = params.get("products");
+
+        if (productsParam) {
+          let raw = null;
+          try {
+            raw = JSON.parse(productsParam);
+          } catch (e1) {
+            try {
+              const decoded = decodeURIComponent(productsParam);
+              raw = JSON.parse(decoded);
+            } catch (e2) {
+              console.warn("Error al parsear 'products' desde la URL:", e1, e2);
+            }
+          }
+
+          if (Array.isArray(raw) && raw.length > 0) {
+            products = raw.map((p, index) => {
+              const id = p.id != null ? p.id : index + 1;
+              const name = p.nombre ?? p.name ?? `Producto ${id}`;
+              const description = p.descripcion ?? p.description ?? "";
+              const price = Number(p.precio ?? p.price ?? 0) || 0;
+              const image =
+                p.imagen && typeof p.imagen === "string" && p.imagen.trim() !== ""
+                  ? p.imagen
+                  : "https://via.placeholder.com/600x400?text=Sin+Imagen";
+              const stock = Number(p.stock ?? 0) || 0;
+
+              return { id, name, description, price, image, stock };
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Error general al leer 'products' desde la URL:", e);
+      }
+
+      // Fallback demo
+      products = [
+        {
+          id: 1,
+          name: "Producto Demo 1",
+          description: "Ejemplo de producto. Pásame tus productos en el parámetro ?products=...",
+          price: 10.0,
+          image: "https://via.placeholder.com/600x400?text=Demo+1",
+          stock: 5,
+        },
+        {
+          id: 2,
+          name: "Producto Demo 2",
+          description: "Otro ejemplo de producto.",
+          price: 20.5,
+          image: "https://via.placeholder.com/600x400?text=Demo+2",
+          stock: 3,
+        },
+      ];
+    }
+
+    function renderProducts() {
+      productsContainer.innerHTML = "";
+
+      products.forEach((p) => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.dataset.id = p.id;
+
+        const qty = cart[p.id] || 0;
+        const subtotalText = qty
+          ? `${qty} u. • Bs. ${(qty * p.price).toFixed(2)}`
+          : "Sin seleccionar";
+
+        card.innerHTML = `
+          <div class="product-clickable">
+            <div class="product-image-wrapper">
+              <img src="${p.image}" alt="${p.name}">
+            </div>
+            <div class="product-body">
+              <div class="product-name">${p.name}</div>
+              <div class="product-description">${p.description}</div>
+              <div class="product-price-stock">
+                <span class="price">Bs. ${p.price.toFixed(2)}</span>
+                <span class="stock ${p.stock <= 3 ? "stock-low" : "stock-ok"}">
+                  Stock: ${p.stock}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="product-footer">
+            <div class="qty-wrapper" data-id="${p.id}">
+              <button class="qty-btn" data-action="dec">−</button>
+              <input
+                type="number"
+                class="qty-input"
+                value="${qty}"
+                min="0"
+                max="${p.stock}"
+                inputmode="numeric"
+              />
+              <button class="qty-btn" data-action="inc">+</button>
+            </div>
+            <div class="cart-pill" id="pill-${p.id}">
+              ${subtotalText}
+            </div>
+          </div>
+        `;
+
+        productsContainer.appendChild(card);
+      });
+
+      attachCardListeners();
+      attachQtyListeners();
+    }
+
+    function attachCardListeners() {
+      productsContainer.querySelectorAll(".product-card").forEach((card) => {
+        const id = Number(card.dataset.id);
+        const clickable = card.querySelector(".product-clickable");
+        clickable.addEventListener("click", () => openProductModal(id));
+      });
+    }
+
+    function attachQtyListeners() {
+      productsContainer.querySelectorAll(".qty-wrapper").forEach((wrapper) => {
+        const id = Number(wrapper.getAttribute("data-id"));
+        const decBtn = wrapper.querySelector('[data-action="dec"]');
+        const incBtn = wrapper.querySelector('[data-action="inc"]');
+        const input = wrapper.querySelector(".qty-input");
+
+        [decBtn, incBtn, input].forEach((el) => {
+          el.addEventListener("click", (e) => e.stopPropagation());
+        });
+
+        incBtn.addEventListener("click", () => {
+          const product = products.find((x) => x.id === id);
+          let current = Number(input.value) || 0;
+          if (current < product.stock) {
+            current += 1;
+            input.value = current;
+            setQty(id, current, true);
+          }
+        });
+
+        decBtn.addEventListener("click", () => {
+          let current = Number(input.value) || 0;
+          if (current > 0) {
+            current -= 1;
+            input.value = current;
+            setQty(id, current, true);
+          }
+        });
+
+        input.addEventListener("change", () => {
+          const product = products.find((x) => x.id === id);
+          let value = parseInt(input.value, 10);
+          if (isNaN(value) || value < 0) value = 0;
+          if (value > product.stock) value = product.stock;
+          input.value = value;
+          setQty(id, value, true);
+        });
+      });
+    }
+
+    function setQty(productId, qty, updateModal = false) {
+      const product = products.find((x) => x.id === productId);
+      if (!product) return;
+
+      if (qty <= 0) {
+        delete cart[productId];
+      } else {
+        cart[productId] = qty;
+      }
+
+      updatePill(productId);
+      updateCartSummary();
+
+      if (updateModal && currentModalProductId === productId) {
+        modalQtyInput.value = cart[productId] || 0;
+        updateModalSubtotal();
+      }
+    }
+
+    function updatePill(productId) {
+      const pill = document.getElementById("pill-" + productId);
+      const qty = cart[productId] || 0;
+      const product = products.find((x) => x.id === productId);
+      if (!pill || !product) return;
+
+      if (qty === 0) {
+        pill.textContent = "Sin seleccionar";
+      } else {
+        const subtotal = product.price * qty;
+        pill.textContent = `${qty} u. • Bs. ${subtotal.toFixed(2)}`;
+      }
+    }
+
+    function updateCartSummary() {
+      const { totalItems, totalAmount } = getCartTotals();
+
+      if (totalItems === 0) {
+        cartInfo.textContent = "Bs. 0.00 (0 prod.)";
+        cartInfo.classList.add("badge-empty");
+      } else {
+        cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
+        cartInfo.classList.remove("badge-empty");
+      }
+
+      updateMainButton();
+    }
+
+    function openProductModal(productId) {
+      const product = products.find((x) => x.id === productId);
+      if (!product) return;
+
+      currentModalProductId = productId;
+
+      modalTitle.textContent = product.name;
+      modalImage.src = product.image;
+      modalImage.alt = product.name;
+      modalDescription.textContent = product.description;
+      modalPrice.textContent = `Bs. ${product.price.toFixed(2)}`;
+      modalStock.textContent = `Stock: ${product.stock}`;
+      modalStock.className =
+        "stock " + (product.stock <= 3 ? "stock-low" : "stock-ok");
+
+      const currentQty = cart[productId] || 0;
+      modalQtyInput.max = String(product.stock);
+      modalQtyInput.value = currentQty;
+      updateModalSubtotal();
+      productModal.classList.add("show");
+    }
+
+    function closeProductModal() {
+      productModal.classList.remove("show");
+      currentModalProductId = null;
+    }
+
+    function updateModalSubtotal() {
+      if (currentModalProductId == null) return;
+      const product = products.find((x) => x.id === currentModalProductId);
+      if (!product) return;
+
+      let qty = Number(modalQtyInput.value) || 0;
+      if (qty < 0) qty = 0;
+      if (qty > product.stock) qty = product.stock;
+      modalQtyInput.value = qty;
+
+      const subtotal = qty * product.price;
+      modalSubtotal.textContent = `Subtotal: Bs. ${subtotal.toFixed(2)}`;
+    }
+
+    modalClose.addEventListener("click", closeProductModal);
+    productModal.addEventListener("click", (e) => {
+      if (e.target === productModal) {
+        closeProductModal();
+      }
     });
 
-    console.log("✅ MiniApp cargada con MainButton");
-  </script>
+    modalQtyWrapper.querySelectorAll(".qty-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (currentModalProductId == null) return;
+        const product = products.find((x) => x.id === currentModalProductId);
+        if (!product) return;
 
+        let qty = Number(modalQtyInput.value) || 0;
+        const action = btn.getAttribute("data-action");
+
+        if (action === "inc" && qty < product.stock) qty += 1;
+        if (action === "dec" && qty > 0) qty -= 1;
+
+        modalQtyInput.value = qty;
+        updateModalSubtotal();
+        setQty(currentModalProductId, qty);
+        syncCardQty(currentModalProductId, qty);
+      });
+    });
+
+    modalQtyInput.addEventListener("change", () => {
+      if (currentModalProductId == null) return;
+      const product = products.find((x) => x.id === currentModalProductId);
+      if (!product) return;
+
+      let qty = parseInt(modalQtyInput.value, 10);
+      if (isNaN(qty) || qty < 0) qty = 0;
+      if (qty > product.stock) qty = product.stock;
+
+      modalQtyInput.value = qty;
+      updateModalSubtotal();
+      setQty(currentModalProductId, qty);
+      syncCardQty(currentModalProductId, qty);
+    });
+
+    function syncCardQty(productId, qty) {
+      const wrapper = productsContainer.querySelector(
+        `.qty-wrapper[data-id="${productId}"]`
+      );
+      if (!wrapper) return;
+      const input = wrapper.querySelector(".qty-input");
+      if (input) {
+        input.value = qty;
+      }
+    }
+
+    // Botón de geolocalización
+    btnUseLocation.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        locationStatus.textContent = "Tu dispositivo no soporta geolocalización.";
+        return;
+      }
+
+      locationStatus.textContent = "Obteniendo ubicación...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          deliveryLat = pos.coords.latitude;
+          deliveryLng = pos.coords.longitude;
+          locationStatus.textContent =
+            `Ubicación seleccionada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+
+          mapFrame.src =
+            `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${deliveryLat}%2C${deliveryLng}`;
+        },
+        (err) => {
+          console.warn("Error geolocalización:", err);
+          locationStatus.textContent =
+            "No se pudo obtener tu ubicación. Puedes escribir la referencia manualmente.";
+        }
+      );
+    });
+
+    // Resumen del paso 3
+    function actualizarResumenPaso3() {
+      const { totalItems, totalAmount } = getCartTotals();
+      summaryItems.textContent = totalItems;
+      summaryTotal.textContent = `Bs. ${totalAmount.toFixed(2)}`;
+
+      const phone = deliveryPhoneInput.value.trim();
+      summaryPhone.textContent = phone || "-";
+
+      const ref = deliveryReferenceInput.value.trim();
+      summaryRef.textContent = ref || "-";
+    }
+
+    // Manejo del botón principal de Telegram (multi-paso)
+    if (tg) {
+      tg.onEvent("mainButtonClicked", () => {
+        if (currentStep === 1) {
+          const { totalItems } = getCartTotals();
+          if (totalItems === 0) {
+            alert("Selecciona al menos un producto antes de continuar.");
+            return;
+          }
+          goToStep(2);
+        } else if (currentStep === 2) {
+          const ref = deliveryReferenceInput.value.trim();
+          const phone = deliveryPhoneInput.value.trim();
+
+          if (!ref) {
+            alert("Por favor ingresa una referencia de entrega.");
+            return;
+          }
+          if (!phone) {
+            alert("Por favor ingresa tu número de teléfono.");
+            return;
+          }
+
+          goToStep(3);
+        } else if (currentStep === 3) {
+          const selectedPay = document.querySelector('input[name="paymentMethod"]:checked');
+          if (!selectedPay) {
+            alert("Por favor selecciona un método de pago.");
+            return;
+          }
+
+          const { totalItems, totalAmount } = getCartTotals();
+          if (totalItems === 0) {
+            alert("Tu carrito está vacío.");
+            return;
+          }
+
+          const items = Object.keys(cart).map((idStr) => {
+            const id = Number(idStr);
+            const product = products.find((x) => x.id === id);
+            return {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              qty: cart[id],
+              subtotal: product.price * cart[id],
+            };
+          });
+
+          const payload = {
+            event: "order_submitted",
+            total_items: totalItems,
+            total_amount: totalAmount,
+            items,
+            delivery: {
+              lat: deliveryLat,
+              lng: deliveryLng,
+              reference: deliveryReferenceInput.value.trim(),
+              phone: deliveryPhoneInput.value.trim(),
+            },
+            payment_method: selectedPay.value,
+            timestamp: Date.now(),
+          };
+
+          tg.sendData(JSON.stringify(payload)); // aquí se cierra la miniapp
+        }
+      });
+    }
+
+    // Init
+    initProducts();
+    renderProducts();
+    updateCartSummary();
+    updateMainButton();
+  </script>
 </body>
 </html>
