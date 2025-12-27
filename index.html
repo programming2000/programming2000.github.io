@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MiniApp • Catálogo de Productos</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Leaflet (para mapa interactivo tipo Google Maps) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
   <style>
     :root {
       --primary: #4a90e2;
@@ -373,10 +383,9 @@
       margin-top: 8px;
     }
 
-    .map-container iframe {
+    #map {
       width: 100%;
       height: 100%;
-      border: 0;
     }
 
     .btn-secondary {
@@ -548,10 +557,7 @@
         Aún no se ha seleccionado una ubicación.
       </div>
       <div class="map-container" style="margin-top:8px;">
-        <iframe
-          id="mapFrame"
-          src="https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=-16.29%2C-63.59&zoom=6"
-        ></iframe>
+        <div id="map"></div>
       </div>
       <div class="helper-text">
         Es obligatorio seleccionar tu ubicación precisa (si tu dispositivo lo permite).
@@ -702,6 +708,10 @@
     let deliveryLat = null;
     let deliveryLng = null;
 
+    // Mapa Leaflet
+    let map = null;
+    let userMarker = null;
+
     // Pago
     let selectedPaymentMethod = null;
 
@@ -720,7 +730,6 @@
 
     const btnUseLocation = document.getElementById("btnUseLocation");
     const locationStatus = document.getElementById("locationStatus");
-    const mapFrame = document.getElementById("mapFrame");
     const deliveryReferenceInput = document.getElementById("deliveryReference");
     const deliveryPhoneInput = document.getElementById("deliveryPhone");
 
@@ -793,6 +802,17 @@
         }
       }
       return "";
+    }
+
+    // Inicializar mapa con centro en Bolivia
+    function initMap() {
+      const bolCenter = [-16.29, -63.59]; // Bolivia
+      map = L.map('map').setView(bolCenter, 6);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
     }
 
     // Totales del carrito
@@ -1263,8 +1283,17 @@
           locationStatus.textContent =
             `Ubicación seleccionada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
 
-          mapFrame.src =
-            `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${deliveryLat}%2C${deliveryLng}&zoom=15`;
+          if (map) {
+            const latlng = [deliveryLat, deliveryLng];
+
+            if (!userMarker) {
+              userMarker = L.marker(latlng).addTo(map);
+            } else {
+              userMarker.setLatLng(latlng);
+            }
+
+            map.setView(latlng, 17, { animate: true });
+          }
         },
         (err) => {
           console.warn("Error geolocalización:", err);
@@ -1438,6 +1467,7 @@
     updateCartSummary();
     updateStepsNav();
     updateMainButton();
+    initMap();
   </script>
 </body>
 </html>
