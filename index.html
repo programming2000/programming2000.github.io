@@ -542,7 +542,7 @@
     </div>
 
     <div class="card">
-      <div class="field-label">Ubicación en el mapa</div>
+      <div class="field-label">Ubicación en el mapa *</div>
       <button id="btnUseLocation" class="btn-secondary">Usar mi ubicación actual</button>
       <div id="locationStatus" class="helper-text" style="margin-top:4px;">
         Aún no se ha seleccionado una ubicación.
@@ -554,7 +554,7 @@
         ></iframe>
       </div>
       <div class="helper-text">
-        El mapa se actualizará cuando se obtenga tu ubicación (si el dispositivo lo permite).
+        Es obligatorio seleccionar tu ubicación precisa (si tu dispositivo lo permite).
       </div>
     </div>
 
@@ -1269,7 +1269,7 @@
         (err) => {
           console.warn("Error geolocalización:", err);
           locationStatus.textContent =
-            "No se pudo obtener tu ubicación. Puedes escribir la referencia manualmente.";
+            "No se pudo obtener tu ubicación. Debes habilitar el permiso para continuar.";
         }
       );
     });
@@ -1352,6 +1352,10 @@
             alert("Por favor ingresa tu número de teléfono.");
             return;
           }
+          if (deliveryLat == null || deliveryLng == null) {
+            alert("Por favor selecciona tu ubicación precisa con el botón 'Usar mi ubicación actual'.");
+            return;
+          }
 
           goToStep(3);
         } else if (currentStep === 3) {
@@ -1381,6 +1385,11 @@
           }
           if (!phone) {
             alert("Falta el número de teléfono. Complétalo en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (deliveryLat == null || deliveryLng == null) {
+            alert("Falta la ubicación precisa. Complétala en el paso 2.");
             goToStep(2);
             return;
           }
