@@ -45,13 +45,8 @@
       color: var(--muted);
     }
 
-    .step {
-      display: none;
-    }
-
-    .step-active {
-      display: block;
-    }
+    .step { display: none; }
+    .step-active { display: block; }
 
     /* PRODUCTOS */
 
@@ -91,7 +86,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;  /* Mostrar imagen completa */
+      object-fit: contain;
     }
 
     .product-body {
@@ -447,6 +442,49 @@
       justify-content: space-between;
       margin-bottom: 4px;
     }
+
+    /* PASO 4: RESUMEN FINAL */
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .item-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      font-size: 0.85rem;
+    }
+
+    .item-row-primary {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+
+    .item-row-secondary {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -483,7 +521,7 @@
       <div class="map-container" style="margin-top:8px;">
         <iframe
           id="mapFrame"
-      src="https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=-16.29%2C-63.59&zoom=6"
+          src="https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=-16.29%2C-63.59&zoom=6"
         ></iframe>
       </div>
       <div class="helper-text">
@@ -525,47 +563,7 @@
     </div>
 
     <div class="card">
-      <div class="payment-options">
-        <label class="payment-item">
-          <input type="radio" name="paymentMethod" value="transferencia" />
-          <div>
-            <div class="payment-label-main">Transferencia bancaria</div>
-            <div class="payment-label-sub">Te enviaremos los datos para transferir.</div>
-          </div>
-        </label>
-
-        <label class="payment-item">
-          <input type="radio" name="paymentMethod" value="credito_apueston" />
-          <div>
-            <div class="payment-label-main">Crédito Apueston</div>
-            <div class="payment-label-sub">Usarás tu saldo de crédito en Apueston.</div>
-          </div>
-        </label>
-
-        <label class="payment-item">
-          <input type="radio" name="paymentMethod" value="credito_metabet" />
-          <div>
-            <div class="payment-label-main">Crédito Metabet</div>
-            <div class="payment-label-sub">Usarás tu saldo de crédito en Metabet.</div>
-          </div>
-        </label>
-
-        <label class="payment-item">
-          <input type="radio" name="paymentMethod" value="credito_pppoker_us" />
-          <div>
-            <div class="payment-label-main">Crédito PPPoker USA</div>
-            <div class="payment-label-sub">Usarás tu crédito en PPPoker (US).</div>
-          </div>
-        </label>
-
-        <label class="payment-item">
-          <input type="radio" name="paymentMethod" value="credito_pppoker_sol" />
-          <div>
-            <div class="payment-label-main">Crédito PPPoker Sol</div>
-            <div class="payment-label-sub">Usarás tu crédito en PPPoker (Sol).</div>
-          </div>
-        </label>
-      </div>
+      <div id="paymentOptions" class="payment-options"></div>
     </div>
 
     <div class="card summary-card">
@@ -586,8 +584,59 @@
         <span id="summaryRef">-</span>
       </div>
       <div class="helper-text" style="margin-top:6px;">
-        Revisa que tus datos sean correctos antes de enviar el pedido.
+        Revisa que tus datos sean correctos antes de continuar.
       </div>
+    </div>
+  </div>
+
+  <!-- PASO 4: RESUMEN FINAL -->
+  <div id="step4" class="step">
+    <div class="section-title">✅ Revisa tu pedido</div>
+    <div class="section-text">
+      Verifica todos los datos antes de enviar el pedido al vendedor.
+    </div>
+
+    <div class="card">
+      <div class="field-label">Productos seleccionados</div>
+      <div id="finalItemsList" class="items-list"></div>
+      <div class="summary-row" style="margin-top:8px;">
+        <span>Total de productos:</span>
+        <span id="finalItemsCount">0</span>
+      </div>
+      <div class="summary-row">
+        <span>Total a pagar:</span>
+        <span id="finalTotalAmount">Bs. 0.00</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Datos de entrega</div>
+      <div class="summary-row">
+        <span>Teléfono:</span>
+        <span id="finalPhone">-</span>
+      </div>
+      <div class="summary-row">
+        <span>Referencia:</span>
+        <span id="finalRef">-</span>
+      </div>
+      <div class="summary-row">
+        <span>Ubicación:</span>
+        <span id="finalLocation">Sin ubicación precisa</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Forma de pago</div>
+      <div class="summary-row">
+        <span>Método:</span>
+        <span id="finalPaymentMethod">-</span>
+      </div>
+      <div class="helper-text" id="finalPaymentDetail" style="margin-top:6px;">
+      </div>
+    </div>
+
+    <div class="helper-text">
+      Cuando presiones <span class="badge">Enviar pedido</span>, tus datos se enviarán al bot para procesar tu compra.
     </div>
   </div>
 
@@ -646,6 +695,9 @@
     let deliveryLat = null;
     let deliveryLng = null;
 
+    // Pago
+    let selectedPaymentMethod = null; // valor interno (transferencia, credito_apueston, etc.)
+
     const productsContainer = document.getElementById("productsContainer");
     const cartInfo = document.getElementById("cartInfo");
 
@@ -655,6 +707,7 @@
     const step1 = document.getElementById("step1");
     const step2 = document.getElementById("step2");
     const step3 = document.getElementById("step3");
+    const step4 = document.getElementById("step4");
 
     const btnUseLocation = document.getElementById("btnUseLocation");
     const locationStatus = document.getElementById("locationStatus");
@@ -666,6 +719,17 @@
     const summaryTotal = document.getElementById("summaryTotal");
     const summaryPhone = document.getElementById("summaryPhone");
     const summaryRef = document.getElementById("summaryRef");
+
+    const finalItemsList = document.getElementById("finalItemsList");
+    const finalItemsCount = document.getElementById("finalItemsCount");
+    const finalTotalAmount = document.getElementById("finalTotalAmount");
+    const finalPhone = document.getElementById("finalPhone");
+    const finalRef = document.getElementById("finalRef");
+    const finalLocation = document.getElementById("finalLocation");
+    const finalPaymentMethod = document.getElementById("finalPaymentMethod");
+    const finalPaymentDetail = document.getElementById("finalPaymentDetail");
+
+    const paymentOptionsContainer = document.getElementById("paymentOptions");
 
     // Modal
     const productModal = document.getElementById("productModal");
@@ -680,6 +744,52 @@
     const modalQtyWrapper = document.getElementById("modalQtyWrapper");
 
     let currentModalProductId = null;
+
+    // Definición de métodos de pago conocidos
+    const creditDefinitions = {
+      apueston: {
+        value: "credito_apueston",
+        main: "Crédito Apueston",
+        sub: "Usarás tu saldo de crédito en Apueston."
+      },
+      metabet: {
+        value: "credito_metabet",
+        main: "Crédito Metabet",
+        sub: "Usarás tu saldo de crédito en Metabet."
+      },
+      pppokerus: {
+        value: "credito_pppoker_us",
+        main: "Crédito PPPoker USA",
+        sub: "Usarás tu crédito en PPPoker (US)."
+      },
+      pppokersol: {
+        value: "credito_pppoker_sol",
+        main: "Crédito PPPoker Sol",
+        sub: "Usarás tu crédito en PPPoker (Sol)."
+      }
+    };
+
+    function getPaymentLabel(value) {
+      if (value === "transferencia") return "Transferencia bancaria";
+      for (const key in creditDefinitions) {
+        if (creditDefinitions[key].value === value) {
+          return creditDefinitions[key].main;
+        }
+      }
+      return value || "-";
+    }
+
+    function getPaymentDetail(value) {
+      if (value === "transferencia") {
+        return "Pagarás mediante transferencia bancaria. El vendedor te enviará los datos de la cuenta.";
+      }
+      for (const key in creditDefinitions) {
+        if (creditDefinitions[key].value === value) {
+          return creditDefinitions[key].sub;
+        }
+      }
+      return "";
+    }
 
     // Utilidad: totales del carrito
     function getCartTotals() {
@@ -714,6 +824,9 @@
         tg.MainButton.setText("Continuar");
         tg.MainButton.show();
       } else if (currentStep === 3) {
+        tg.MainButton.setText("Continuar");
+        tg.MainButton.show();
+      } else if (currentStep === 4) {
         if (totalItems === 0) {
           tg.MainButton.hide();
         } else {
@@ -726,9 +839,7 @@
     function goToStep(step) {
       currentStep = step;
 
-      step1.classList.remove("step-active");
-      step2.classList.remove("step-active");
-      step3.classList.remove("step-active");
+      [step1, step2, step3, step4].forEach(s => s.classList.remove("step-active"));
 
       if (step === 1) {
         step1.classList.add("step-active");
@@ -741,8 +852,13 @@
       } else if (step === 3) {
         step3.classList.add("step-active");
         headerTitle.textContent = "💳 Método de pago";
-        headerSubtitle.textContent = "Elige cómo pagarás y confirma tu pedido.";
+        headerSubtitle.textContent = "Elige cómo pagarás y revisa tus datos.";
         actualizarResumenPaso3();
+      } else if (step === 4) {
+        step4.classList.add("step-active");
+        headerTitle.textContent = "✅ Confirmar pedido";
+        headerSubtitle.textContent = "Revisa todo y envía tu pedido al vendedor.";
+        actualizarResumenPaso4();
       }
 
       updateMainButton();
@@ -807,6 +923,69 @@
           stock: 3,
         },
       ];
+    }
+
+    // Cargar métodos de crédito desde ?creditPlatforms=
+    function initPaymentOptions() {
+      const params = new URLSearchParams(window.location.search);
+      const platformsParam = params.get("creditPlatforms");
+
+      const extraMethods = [];
+
+      if (platformsParam) {
+        let arr = null;
+        try {
+          arr = JSON.parse(platformsParam);
+        } catch {
+          arr = platformsParam.split(",").map(x => x.trim()).filter(Boolean);
+        }
+
+        if (Array.isArray(arr)) {
+          arr.forEach(code => {
+            const key = String(code).toLowerCase();
+            if (creditDefinitions[key]) {
+              extraMethods.push(creditDefinitions[key]);
+            }
+          });
+        }
+      }
+
+      paymentOptionsContainer.innerHTML = "";
+
+      function createPaymentItem(def) {
+        const wrapper = document.createElement("label");
+        wrapper.className = "payment-item";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "paymentMethod";
+        input.value = def.value;
+
+        const textDiv = document.createElement("div");
+        const main = document.createElement("div");
+        main.className = "payment-label-main";
+        main.textContent = def.main;
+        const sub = document.createElement("div");
+        sub.className = "payment-label-sub";
+        sub.textContent = def.sub;
+
+        textDiv.appendChild(main);
+        textDiv.appendChild(sub);
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(textDiv);
+        paymentOptionsContainer.appendChild(wrapper);
+      }
+
+      // Siempre transferencia
+      createPaymentItem({
+        value: "transferencia",
+        main: "Transferencia bancaria",
+        sub: "Te enviaremos los datos para transferir."
+      });
+
+      // Créditos adicionales según parámetro
+      extraMethods.forEach(def => createPaymentItem(def));
     }
 
     function renderProducts() {
@@ -1069,7 +1248,7 @@
             `Ubicación seleccionada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
 
           mapFrame.src =
-            `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${deliveryLat}%2C${deliveryLng}`;
+            `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${deliveryLat}%2C${deliveryLng}&zoom=15`;
         },
         (err) => {
           console.warn("Error geolocalización:", err);
@@ -1092,11 +1271,59 @@
       summaryRef.textContent = ref || "-";
     }
 
+    // Resumen del paso 4
+    function actualizarResumenPaso4() {
+      const { totalItems, totalAmount } = getCartTotals();
+
+      finalItemsList.innerHTML = "";
+      Object.keys(cart).forEach(idStr => {
+        const id = Number(idStr);
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+        const qty = cart[id];
+        const subtotal = qty * product.price;
+
+        const row = document.createElement("div");
+        row.className = "item-row";
+        row.innerHTML = `
+          <div class="item-row-primary">
+            <span>${product.name}</span>
+            <span>Bs. ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="item-row-secondary">
+            <span>Cantidad: ${qty}</span>
+            <span>Bs. ${product.price.toFixed(2)} c/u</span>
+          </div>
+        `;
+        finalItemsList.appendChild(row);
+      });
+
+      finalItemsCount.textContent = totalItems;
+      finalTotalAmount.textContent = `Bs. ${totalAmount.toFixed(2)}`;
+
+      const phone = deliveryPhoneInput.value.trim();
+      finalPhone.textContent = phone || "-";
+
+      const ref = deliveryReferenceInput.value.trim();
+      finalRef.textContent = ref || "-";
+
+      if (deliveryLat != null && deliveryLng != null) {
+        finalLocation.textContent =
+          `${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+      } else {
+        finalLocation.textContent = "Sin ubicación precisa";
+      }
+
+      finalPaymentMethod.textContent = getPaymentLabel(selectedPaymentMethod);
+      finalPaymentDetail.textContent = getPaymentDetail(selectedPaymentMethod);
+    }
+
     // Manejo del botón principal de Telegram (multi-paso)
     if (tg) {
       tg.onEvent("mainButtonClicked", () => {
+        const { totalItems, totalAmount } = getCartTotals();
+
         if (currentStep === 1) {
-          const { totalItems } = getCartTotals();
           if (totalItems === 0) {
             alert("Selecciona al menos un producto antes de continuar.");
             return;
@@ -1117,13 +1344,14 @@
 
           goToStep(3);
         } else if (currentStep === 3) {
-          const selectedPay = document.querySelector('input[name="paymentMethod"]:checked');
-          if (!selectedPay) {
+          const selected = document.querySelector('input[name="paymentMethod"]:checked');
+          if (!selected) {
             alert("Por favor selecciona un método de pago.");
             return;
           }
-
-          const { totalItems, totalAmount } = getCartTotals();
+          selectedPaymentMethod = selected.value;
+          goToStep(4);
+        } else if (currentStep === 4) {
           if (totalItems === 0) {
             alert("Tu carrito está vacío.");
             return;
@@ -1152,17 +1380,18 @@
               reference: deliveryReferenceInput.value.trim(),
               phone: deliveryPhoneInput.value.trim(),
             },
-            payment_method: selectedPay.value,
+            payment_method: selectedPaymentMethod,
             timestamp: Date.now(),
           };
 
-          tg.sendData(JSON.stringify(payload)); // aquí se cierra la miniapp
+          tg.sendData(JSON.stringify(payload)); // la miniapp se cierra al enviar
         }
       });
     }
 
     // Init
     initProducts();
+    initPaymentOptions();
     renderProducts();
     updateCartSummary();
     updateMainButton();
