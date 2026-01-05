@@ -56,6 +56,11 @@
       border-color:var(--primary);
       box-shadow:0 0 0 3px rgba(74,144,226,.15);
     }
+    input[readonly]{
+      background:#f4f6f9;
+      color:#1f2a33;
+      cursor:not-allowed;
+    }
     .btn{
       width:100%;
       padding:12px 14px;
@@ -82,8 +87,8 @@
       margin-top:6px;
     }
     .hidden{
-        display:none !important;
-      }
+      display:none !important;
+    }
 
     .unsupported{
       text-align:center;
@@ -179,7 +184,10 @@
     </select>
 
     <label for="usuarioDestino">Usuario en plataforma destino</label>
-    <input id="usuarioDestino" type="text" placeholder="Usuario destino (opcional)" maxlength="32" />
+    <input id="usuarioDestino" type="text" placeholder="Usuario destino" maxlength="32" readonly />
+    <div id="destinoUserWarning" class="warning hidden">
+      El usuario de esta plataforma no está configurado. Comuníquese con el cajero para registrarlo antes de hacer una conversión.
+    </div>
 
     <label for="monto">Monto a convertir</label>
     <input id="monto" type="text" inputmode="numeric" placeholder="0" />
@@ -320,17 +328,15 @@
       }
     }
 
-    function onChangeOrigen() {
-      const origenId = $('plataformaOrigen').value;
-      const userField = $('usuarioOrigen');
-      const warning = $('origenUserWarning');
+    function onChangeDestino() {
+      const destinoId = $('plataformaDestino').value;
+      const userField = $('usuarioDestino');
+      const warning = $('destinoUserWarning');
 
-      updateDestinoOptions(origenId);
-
-      const preUser = state.users[origenId] || '';
+      const preUser = (state.users[destinoId] || '').trim();
       userField.value = preUser;
 
-      if (!origenId) {
+      if (!destinoId) {
         warning.classList.add('hidden');
       } else if (!preUser) {
         warning.classList.remove('hidden');
@@ -341,12 +347,27 @@
       validate();
     }
 
-    function onChangeDestino() {
-      const destinoId = $('plataformaDestino').value;
-      const userField = $('usuarioDestino');
-      const preUser = state.users[destinoId] || '';
+    function onChangeOrigen() {
+      const origenId = $('plataformaOrigen').value;
+      const userField = $('usuarioOrigen');
+      const warning = $('origenUserWarning');
 
+      updateDestinoOptions(origenId);
+
+      const preUser = (state.users[origenId] || '').trim();
       userField.value = preUser;
+
+      if (!origenId) {
+        warning.classList.add('hidden');
+      } else if (!preUser) {
+        warning.classList.remove('hidden');
+      } else {
+        warning.classList.add('hidden');
+      }
+
+      // refrescar estado/aviso del destino luego de recalcular opciones
+      onChangeDestino();
+
       validate();
     }
 
@@ -357,7 +378,10 @@
     function validate() {
       const origenId = $('plataformaOrigen').value;
       const destinoId = $('plataformaDestino').value;
+
       const usuarioOrigen = $('usuarioOrigen').value.trim();
+      const usuarioDestino = $('usuarioDestino').value.trim();
+
       const montoStr = $('monto').value.trim();
       const monto = parseInt(montoStr || '0', 10);
 
@@ -365,9 +389,12 @@
 
       if (!origenId || !destinoId) ok = false;
       if (origenId && destinoId && origenId === destinoId) ok = false;
+
       if (!Number.isFinite(monto) || monto <= 0) ok = false;
 
+      // Bloquear si no está registrado en cualquiera de las dos plataformas
       if (!usuarioOrigen) ok = false;
+      if (!usuarioDestino) ok = false;
 
       $('btnEnviar').disabled = !ok;
       return ok;
@@ -445,7 +472,7 @@
 
       $('plataformaOrigen').addEventListener('change', onChangeOrigen);
       $('plataformaDestino').addEventListener('change', onChangeDestino);
-      $('usuarioDestino').addEventListener('input', () => validate());
+
       $('monto').addEventListener('input', (e) => { sanitizeMontoInput(e.target); validate(); });
 
       // En lugar de enviar directo, abrimos la confirmación
