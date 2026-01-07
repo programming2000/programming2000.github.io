@@ -8,195 +8,141 @@
 
   <style>
     :root{
-      --bg1:#0B1220;
-      --bg2:#0F1B36;
-      --card:#0F1A2E;
-      --card2:#0C1528;
-      --text:#E9EEF8;
-      --muted:#A7B3C9;
-      --border:rgba(255,255,255,.10);
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --border:#e5e7eb;
 
-      --accent:#7C3AED;   /* violeta */
-      --accent2:#22C55E;  /* verde */
-      --accent3:#3B82F6;  /* azul */
-      --accent4:#EF4444;  /* rojo */
-      --gold:#F59E0B;
+      --primary:#2563eb;
+      --primary2:#1d4ed8;
 
-      --shadow: 0 16px 40px rgba(0,0,0,.35);
-      --radius: 18px;
+      --shadow:0 10px 22px rgba(0,0,0,.08);
+      --radius:16px;
     }
 
     *{ box-sizing:border-box; }
-
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(1100px 700px at 20% 0%, rgba(124,58,237,.30), transparent 60%),
-        radial-gradient(900px 600px at 80% 10%, rgba(34,197,94,.20), transparent 60%),
-        radial-gradient(900px 700px at 50% 110%, rgba(59,130,246,.18), transparent 60%),
-        linear-gradient(180deg, var(--bg1), var(--bg2));
-      min-height:100vh;
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
     }
 
     .wrap{
       max-width: 980px;
-      margin: 0 auto;
-      padding: 18px 14px 28px;
+      margin:0 auto;
+      padding: 16px;
     }
 
     .header{
-      border-radius: var(--radius);
-      padding: 16px 16px;
-      background:
-        linear-gradient(135deg, rgba(124,58,237,.18), rgba(34,197,94,.10)),
-        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      background: var(--card);
       border: 1px solid var(--border);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
-      margin-bottom: 14px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .header:before{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:
-        radial-gradient(600px 200px at 20% 0%, rgba(245,158,11,.16), transparent 65%),
-        radial-gradient(600px 250px at 90% 30%, rgba(59,130,246,.16), transparent 65%);
-      pointer-events:none;
-    }
-
-    .headerInner{
-      position:relative;
+      padding: 14px 16px;
+      margin-bottom: 12px;
       display:flex;
+      justify-content:space-between;
       gap:12px;
       align-items:flex-start;
-      justify-content:space-between;
     }
-
-    .title h1{
+    .header h1{
       margin:0;
       font-size: 18px;
-      letter-spacing: .2px;
+      letter-spacing:.2px;
     }
-    .title p{
+    .header p{
       margin:6px 0 0;
-      color: var(--muted);
+      color:var(--muted);
       font-size: 13px;
       line-height: 1.35;
     }
-
-    .countPill{
+    .count{
       white-space:nowrap;
-      align-self:flex-start;
-      border-radius: 999px;
+      border:1px solid var(--border);
+      border-radius:999px;
       padding: 8px 12px;
       font-size: 12px;
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      color: var(--muted);
+      background:#fff;
+      align-self:flex-start;
     }
 
     .grid{
       display:grid;
-      grid-template-columns: repeat(1, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 12px;
-      margin-top: 12px;
     }
     @media (min-width: 860px){
-      .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid{ grid-template-columns: 1fr 1fr; }
     }
 
     .card{
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 14px;
-      position: relative;
-      overflow: hidden;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
     }
-    .card:before{
-      content:"";
-      position:absolute;
-      inset:-1px;
-      background: radial-gradient(600px 220px at 10% 0%, rgba(124,58,237,.18), transparent 55%);
-      pointer-events:none;
-      opacity:.8;
-    }
-
-    .cardInner{ position:relative; display:flex; flex-direction:column; gap: 12px; }
 
     .top{
       display:flex;
-      gap: 10px;
-      align-items:flex-start;
       justify-content:space-between;
+      gap: 12px;
+      align-items:flex-start;
     }
-
-    .promoTitle{
+    .titleBlock{
+      min-width:0;
       display:flex;
       flex-direction:column;
       gap: 4px;
-      min-width: 0;
     }
-    .promoTitle .h{
+    .titleBlock .t{
       margin:0;
       font-weight: 800;
       font-size: 14px;
-      letter-spacing: .15px;
     }
-    .promoTitle .sub{
+    .titleBlock .s{
       margin:0;
-      font-size: 12.5px;
       color: var(--muted);
+      font-size: 12.8px;
       line-height: 1.35;
     }
 
     .badge{
-      white-space:nowrap;
+      border: 1px solid var(--border);
       border-radius: 999px;
       padding: 7px 10px;
       font-size: 12px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      background:#fff;
+      white-space:nowrap;
     }
-    .badge b{ color: #fff; }
 
     .section{
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      background: rgba(0,0,0,.18);
+      border:1px solid var(--border);
+      border-radius: 12px;
       overflow:hidden;
     }
-
-    .sectionRow{
+    .row{
       padding: 10px 12px;
-      border-top: 1px solid rgba(255,255,255,.08);
+      border-top: 1px solid var(--border);
+      background:#fff;
     }
-    .sectionRow:first-child{ border-top: 0; }
+    .row:first-child{ border-top:none; }
 
     .label{
+      margin:0 0 6px;
       font-size: 12px;
       color: var(--muted);
-      margin:0 0 6px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      letter-spacing: .2px;
     }
-
     .value{
       font-size: 12.8px;
-      color: var(--text);
       line-height: 1.45;
+      color: var(--text);
     }
 
     .chipsLine{
@@ -205,137 +151,122 @@
       gap:8px;
       margin-top:6px;
     }
-
     .chip{
       display:inline-flex;
       align-items:center;
-      border: 1px solid rgba(255,255,255,.16);
+      border: 1px solid var(--border);
       border-radius: 999px;
       padding: 6px 10px;
       font-size: 12px;
-      font-weight: 750;
-      background: rgba(255,255,255,.05);
-      backdrop-filter: blur(6px);
+      background:#fff;
+      font-weight: 700;
     }
+    /* Colores por plataforma (suaves) */
+    .chip-apueston{ border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .chip-metabet{ border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
+    .chip-ppp{ border-color:#bbf7d0; background:#f0fdf4; color:#166534; }
+    .chip-otros{ border-color:#fde68a; background:#fffbeb; color:#92400e; }
 
-    /* Colores por plataforma */
-    .chip-apueston{ border-color: rgba(239,68,68,.65); color:#FFD6D6; background: rgba(239,68,68,.14); }
-    .chip-metabet{ border-color: rgba(59,130,246,.70); color:#D7E7FF; background: rgba(59,130,246,.16); }
-    .chip-ppp{ border-color: rgba(34,197,94,.70); color:#D9FFE9; background: rgba(34,197,94,.14); }
-    .chip-otros{ border-color: rgba(245,158,11,.65); color:#FFE8C2; background: rgba(245,158,11,.14); }
+    .box{
+      border: 1px solid var(--border);
+      background:#f9fafb;
+      border-radius: 12px;
+      padding: 10px 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      margin-top: 6px;
+    }
 
     .mono{ font-variant-numeric: tabular-nums; }
 
-    .finalBox{
-      margin-top:6px;
+    .actions{
       display:flex;
-      flex-direction:column;
-      gap:6px;
-      padding: 10px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-    }
-
-    .finalLine{
-      font-size: 12.6px;
-      color: var(--text);
-      line-height: 1.45;
-    }
-    .finalLine b{ color: #fff; }
-
-    .sim{
-      margin-top: 10px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.12);
-      background:
-        radial-gradient(500px 120px at 20% 0%, rgba(34,197,94,.18), transparent 60%),
-        radial-gradient(500px 120px at 80% 0%, rgba(124,58,237,.16), transparent 60%),
-        rgba(255,255,255,.04);
-      padding: 12px;
-    }
-
-    .simHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom: 10px;
-    }
-
-    .simTitle{
-      font-size: 12.7px;
-      font-weight: 850;
-      letter-spacing: .2px;
-      margin:0;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .simHint{
-      font-size: 12px;
-      color: var(--muted);
-      margin:0;
-      white-space:nowrap;
-    }
-
-    .simGrid{
-      display:grid;
-      grid-template-columns: 1fr 130px;
       gap: 10px;
-      align-items:center;
+      justify-content:flex-end;
     }
-
-    input{
-      width:100%;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 13px;
-      outline:none;
-      background: rgba(0,0,0,.25);
-      color: var(--text);
-    }
-    input::placeholder{ color: rgba(167,179,201,.75); }
-    input:focus{
-      border-color: rgba(124,58,237,.65);
-      box-shadow: 0 0 0 3px rgba(124,58,237,.20);
-    }
-
-    button{
+    .btn{
       border:0;
       border-radius: 12px;
       padding: 10px 12px;
       font-size: 13px;
       cursor:pointer;
-      font-weight: 850;
-      color:#fff;
-      background: linear-gradient(135deg, var(--accent), rgba(59,130,246,.95));
-      box-shadow: 0 12px 26px rgba(124,58,237,.22);
+      font-weight: 800;
     }
-    button:active{ transform: translateY(1px); }
+    .btn-primary{
+      background: var(--primary);
+      color:#fff;
+    }
+    .btn-primary:hover{ background: var(--primary2); }
+    .btn-primary:active{ transform: translateY(1px); }
 
-    .simOut{
-      margin-top: 10px;
+    .btn-ghost{
+      background:#fff;
+      border:1px solid var(--border);
+      color: var(--text);
+    }
+
+    /* Panel activar promo */
+    .panel{
+      display:none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background:#fff;
+      padding: 12px;
+      gap: 10px;
+    }
+    .panel.show{ display:grid; }
+
+    .panelGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 520px){
+      .panelGrid{ grid-template-columns: 1fr; }
+    }
+
+    input, select{
+      width:100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline:none;
+      background:#fff;
+    }
+    input:focus, select:focus{
+      border-color: rgba(37,99,235,.6);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    .note{
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .confirmBox{
+      display:none;
+      margin-top: 6px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background:#f9fafb;
       font-size: 12.8px;
       line-height: 1.45;
-      color: var(--text);
-      padding: 10px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.20);
     }
+    .confirmBox.show{ display:block; }
 
     .empty{
-      border-radius: var(--radius);
-      padding: 16px;
+      background: var(--card);
       border: 1px solid var(--border);
-      background: rgba(255,255,255,.05);
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
+      padding: 16px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.45;
     }
   </style>
 </head>
@@ -343,45 +274,32 @@
 <body>
   <div class="wrap">
     <div class="header">
-      <div class="headerInner">
-        <div class="title">
-          <h1>Promociones disponibles</h1>
-          <p>Visualiza a qué plataformas aplica, condiciones para finalizar y el regalo que obtendrás.</p>
-        </div>
-        <div class="countPill" id="countPill">0 promos</div>
+      <div>
+        <h1>Promociones disponibles</h1>
+        <p>Activa una promo, indica monto y plataforma, confirma y se enviará al bot para continuar.</p>
       </div>
+      <div class="count" id="countPill">0 promos</div>
     </div>
 
     <div id="content"></div>
   </div>
 
   <script>
-    // Init Telegram WebApp (silencioso)
-    try {
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-    } catch { /* si se abre en navegador normal, no pasa nada */ }
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
 
     const PLATAFORMAS = {
-      1: "Apu: Apueston",
-      2: "Az: Metabet",
-      3: "V: PPP US",
-      4: "V: PPP SOL",
-      5: "O: KKK",
-      6: "V: PPP BOL",
-      7: "O: GGG",
-      8: "O: Tienda"
+      1: "Apueston",
+      2: "Metabet",
+      3: "PPP US",
+      4: "PPP SOL",
+      5: "KKK",
+      6: "PPP BOL",
+      7: "GGG",
+      8: "Tienda"
     };
 
-    function platformName(id){
-      const name = PLATAFORMAS[id];
-      if (!name) return `Producto ${id}`;
-      // Quitamos el prefijo interno (R:, Az:, etc.) al mostrar
-      return name.split(": ").slice(1).join(": ");
-    }
-
+    function platformName(id){ return PLATAFORMAS[id] ?? `Producto ${id}`; }
     function platformClass(id){
-      // Apueston rojo, Metabet azul, PPP verde, resto dorado
       if (id === 1) return "chip-apueston";
       if (id === 2) return "chip-metabet";
       if (id === 3 || id === 4 || id === 6) return "chip-ppp";
@@ -411,155 +329,263 @@
       }
     }
 
-    function buildFinalizeLines(promo){
-      const upperTxt = promo.MontoMinimoFinalizarEsPorcentaje
-        ? `${fmtPct(promo.MontoMinimoFinalizar)} o menos de lo recargado`
-        : `${fmtMoney(promo.MontoMinimoFinalizar)} o menos`;
+    // Regla definitiva:
+    // - si esPorcentaje=true => umbral = recarga * (valor/100)
+    // - si esPorcentaje=false => umbral = valor (monto absoluto)
+    function computeThreshold(valor, esPorcentaje, recarga){
+      const v = Number(valor);
+      const r = Number(recarga);
+      if (isNaN(v)) return null;
 
-      const lowerTxt = promo.MontoRequeridoFinalizarEsPorcentaje
-        ? `${fmtPct(promo.MontoRequeridoFinalizar)} o más de lo recargado`
-        : `${fmtMoney(promo.MontoRequeridoFinalizar)} o más`;
+      if (esPorcentaje === true){
+        if (isNaN(r) || r <= 0) return null;
+        return r * (v / 100);
+      }
 
-      return {
-        lowerTxt,
-        upperTxt
-      };
+      return v;
     }
 
-    function giftLabel(promo){
-      return promo.MontoRegaloEsPorcentaje
-        ? `${fmtPct(promo.MontoRegalo)}`
-        : `${fmtMoney(promo.MontoRegalo)}`;
-    }
-
-    function calcGift(promo, recarga){
+    // Calcula regalo:
+    // - si MontoRegaloEsPorcentaje=true => regalo = recarga*(MontoRegalo/100)
+    // - si false => regalo = MontoRegalo
+    function computeGift(promo, recarga){
       const r = Number(recarga);
       if (isNaN(r) || r <= 0) return null;
 
-      if (!promo.MontoRegaloEsPorcentaje){
-        // Monto fijo (si en algún momento quieres soportarlo)
-        const g = Number(promo.MontoRegalo);
-        if (isNaN(g)) return null;
-        return { regalo: g, total: r + g };
-      }
+      const giftVal = Number(promo.MontoRegalo);
+      if (isNaN(giftVal)) return null;
 
-      const pct = Number(promo.MontoRegalo);
-      if (isNaN(pct)) return null;
-      const regalo = r * (pct / 100);
+      const regalo = promo.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
       const total = r + regalo;
       return { regalo, total };
+    }
+
+    function giftBadgeText(promo){
+      if (promo.MontoRegaloEsPorcentaje){
+        return `Regalo: <b>${fmtPct(promo.MontoRegalo)}</b>`;
+      }
+      return `Regalo: <b>${fmtMoney(promo.MontoRegalo)}</b>`;
+    }
+
+    function finalizeTextLines(promo){
+      // Texto general, sin calcular en Bs (porque depende de recarga si hay %)
+      const minTxt = promo.MontoRequeridoFinalizarEsPorcentaje
+        ? `${fmtPct(promo.MontoRequeridoFinalizar)} o más de la recarga`
+        : `${fmtMoney(promo.MontoRequeridoFinalizar)} Bs o más`;
+
+      const maxTxt = promo.MontoMinimoFinalizarEsPorcentaje
+        ? `${fmtPct(promo.MontoMinimoFinalizar)} o menos de la recarga`
+        : `${fmtMoney(promo.MontoMinimoFinalizar)} Bs o menos`;
+
+      return { minTxt, maxTxt };
+    }
+
+    function sendToBot(payload){
+      // payload debe ser string JSON
+      try {
+        Telegram.WebApp.sendData(payload);
+        // opcional: cerrar miniapp
+        // Telegram.WebApp.close();
+      } catch {
+        alert("No se pudo enviar al bot (abre esto dentro de Telegram).");
+      }
     }
 
     function renderPromoCard(promo, idx){
       const validIds = Array.isArray(promo.ProductosValidosId) ? promo.ProductosValidosId : [];
       const regaloId = Number(promo.ProductoRegaloId);
-      const regaloPlataforma = platformName(regaloId);
 
-      const { lowerTxt, upperTxt } = buildFinalizeLines(promo);
+      const chipsHtml = validIds.map(id =>
+        `<span class="chip ${platformClass(id)}">${platformName(id)}</span>`
+      ).join("");
+
+      const regaloTxtPlataforma = platformName(regaloId);
+
+      const { minTxt, maxTxt } = finalizeTextLines(promo);
 
       const card = document.createElement("div");
       card.className = "card";
 
-      const chipsHtml = (validIds.length ? validIds : []).map(id => {
-        return `<span class="chip ${platformClass(id)}">${platformName(id)}</span>`;
-      }).join("");
-
-      const regaloTxt = promo.MontoRegaloEsPorcentaje
-        ? `Regalo: <b>${giftLabel(promo)}</b> (sobre la recarga)`
-        : `Regalo: <b>${giftLabel(promo)}</b>`;
-
-      const showSim = !!promo.MontoRegaloEsPorcentaje;
-
       card.innerHTML = `
-        <div class="cardInner">
-          <div class="top">
-            <div class="promoTitle">
-              <p class="h">Promo #${idx + 1}</p>
-              <p class="sub">
-                Inicia desde <b class="mono">${fmtMoney(promo.MontoMinimo)}</b> · Abono del regalo en <b>${regaloPlataforma}</b>
-              </p>
-            </div>
-            <div class="badge">${regaloTxt}</div>
+        <div class="top">
+          <div class="titleBlock">
+            <p class="t">Promo #${idx + 1}</p>
+            <p class="s">
+              Inicia desde <b class="mono">${fmtMoney(promo.MontoMinimo)}</b> Bs · Regalo se acredita en <b>${regaloTxtPlataforma}</b>
+            </p>
           </div>
+          <div class="badge">${giftBadgeText(promo)}</div>
+        </div>
 
-          <div class="section">
-            <div class="sectionRow">
-              <p class="label">Aplica a:</p>
-              <div class="value">
-                <div class="chipsLine">
-                  ${chipsHtml || `<span class="chip chip-otros">—</span>`}
-                </div>
-              </div>
-            </div>
-
-            <div class="sectionRow">
-              <p class="label">Condición para finalizar:</p>
-              <div class="value">
-                <div class="finalBox">
-                  <div class="finalLine"><b>Mínimo permitido:</b> ${lowerTxt}</div>
-                  <div class="finalLine"><b>Máximo permitido:</b> ${upperTxt}</div>
-                </div>
-              </div>
+        <div class="section">
+          <div class="row">
+            <p class="label">Aplica a:</p>
+            <div class="value">
+              <div class="chipsLine">${chipsHtml || `<span class="chip chip-otros">—</span>`}</div>
             </div>
           </div>
 
-          ${
-            showSim ? `
-              <div class="sim">
-                <div class="simHead">
-                  <p class="simTitle">Simulador de abono</p>
-                  <p class="simHint">Solo para regalo en %</p>
-                </div>
-
-                <div class="simGrid">
-                  <input type="number" inputmode="decimal" placeholder="Monto a recargar (ej: 1000)" id="recarga_${idx}" />
-                  <button type="button" id="btn_${idx}">Calcular</button>
-                </div>
-
-                <div class="simOut" id="out_${idx}">
-                  Ingresa un monto para ver cuánto se cargará en total (recarga + regalo).
-                </div>
+          <div class="row">
+            <p class="label">Condición para finalizar:</p>
+            <div class="value">
+              <div class="box">
+                <div><b>Mínimo requerido:</b> ${minTxt}</div>
+                <div><b>Máximo permitido:</b> ${maxTxt}</div>
               </div>
-            ` : ``
-          }
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="activate_${idx}">Activar promo</button>
+        </div>
+
+        <div class="panel" id="panel_${idx}">
+          <div class="panelGrid">
+            <div>
+              <div class="note" style="margin-bottom:6px">Monto a cargar</div>
+              <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
+            </div>
+            <div>
+              <div class="note" style="margin-bottom:6px">Plataforma</div>
+              <select id="plat_${idx}">
+                ${(validIds.length ? validIds : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="actions" style="justify-content:space-between">
+            <button class="btn btn-ghost" id="cancel_${idx}">Cancelar</button>
+            <button class="btn btn-primary" id="preview_${idx}">Continuar</button>
+          </div>
+
+          <div class="confirmBox" id="confirm_${idx}"></div>
+
+          <div class="actions" id="confirmActions_${idx}" style="display:none">
+            <button class="btn btn-ghost" id="back_${idx}">Atrás</button>
+            <button class="btn btn-primary" id="send_${idx}">Confirmar y enviar</button>
+          </div>
         </div>
       `;
 
-      if (showSim){
-        const btn = card.querySelector(`#btn_${idx}`);
-        btn.addEventListener("click", () => {
-          const inp = card.querySelector(`#recarga_${idx}`);
-          const out = card.querySelector(`#out_${idx}`);
-          const recarga = Number(inp.value);
+      const btnActivate = card.querySelector(`#activate_${idx}`);
+      const panel = card.querySelector(`#panel_${idx}`);
+      const btnCancel = card.querySelector(`#cancel_${idx}`);
+      const btnPreview = card.querySelector(`#preview_${idx}`);
+      const boxConfirm = card.querySelector(`#confirm_${idx}`);
+      const confirmActions = card.querySelector(`#confirmActions_${idx}`);
+      const btnBack = card.querySelector(`#back_${idx}`);
+      const btnSend = card.querySelector(`#send_${idx}`);
 
-          if (isNaN(recarga) || recarga <= 0){
-            out.innerHTML = `Ingresa un monto válido mayor a 0.`;
-            return;
-          }
+      const inpMonto = card.querySelector(`#monto_${idx}`);
+      const selPlat = card.querySelector(`#plat_${idx}`);
 
-          const res = calcGift(promo, recarga);
-          if (!res){
-            out.innerHTML = `No se pudo calcular el regalo con los datos actuales.`;
-            return;
-          }
-
-          out.innerHTML = `
-            Recarga: <b class="mono">${fmtMoney(recarga)}</b><br/>
-            Regalo (${fmtPct(promo.MontoRegalo)}): <b class="mono">${fmtMoney(res.regalo)}</b><br/>
-            <span style="display:inline-block;margin-top:6px">
-              Total a cargar: <b class="mono">${fmtMoney(res.total)} Bs</b>
-            </span>
-          `;
-        });
+      function hideConfirm(){
+        boxConfirm.classList.remove("show");
+        boxConfirm.innerHTML = "";
+        confirmActions.style.display = "none";
       }
+
+      btnActivate.addEventListener("click", () => {
+        panel.classList.add("show");
+        hideConfirm();
+        inpMonto.focus();
+      });
+
+      btnCancel.addEventListener("click", () => {
+        panel.classList.remove("show");
+        hideConfirm();
+      });
+
+      btnBack.addEventListener("click", () => {
+        hideConfirm();
+      });
+
+      btnPreview.addEventListener("click", () => {
+        const monto = Number(inpMonto.value);
+        if (isNaN(monto) || monto <= 0){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Ingresa un <b>monto válido</b> mayor a 0.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+        // Validar monto mínimo de inicio
+        const minStart = Number(promo.MontoMinimo);
+        if (!isNaN(minStart) && monto < minStart){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `El monto mínimo para iniciar esta promo es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        const platId = Number(selPlat.value);
+        const platName = platformName(platId);
+
+        // Calcular umbrales en Bs con la regla definitiva
+        const minReq = computeThreshold(promo.MontoRequeridoFinalizar, !!promo.MontoRequeridoFinalizarEsPorcentaje, monto);
+        const maxAllow = computeThreshold(promo.MontoMinimoFinalizar, !!promo.MontoMinimoFinalizarEsPorcentaje, monto);
+
+        // Calcular regalo y total a cargar
+        const g = computeGift(promo, monto);
+
+        const minReqLine = (minReq === null)
+          ? `—`
+          : `<b class="mono">${fmtMoney(minReq)}</b> Bs`;
+
+        const maxAllowLine = (maxAllow === null)
+          ? `—`
+          : `<b class="mono">${fmtMoney(maxAllow)}</b> Bs`;
+
+        const giftLine = g
+          ? `<b class="mono">${fmtMoney(g.regalo)}</b> Bs`
+          : `—`;
+
+        const totalLine = g
+          ? `<b class="mono">${fmtMoney(g.total)}</b> Bs`
+          : `—`;
+
+        boxConfirm.classList.add("show");
+        boxConfirm.innerHTML = `
+          <b>Confirmación</b><br/>
+          Vas a cargar <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b> usando la <b>Promo #${idx + 1}</b>.<br/><br/>
+
+          <b>Regalo:</b> ${giftLine}<br/>
+          <b>Total a cargar:</b> ${totalLine}<br/><br/>
+
+          <b>Para finalizar (calculado con tu recarga):</b><br/>
+          <span>• Mínimo requerido: ${minReqLine}</span><br/>
+          <span>• Máximo permitido: ${maxAllowLine}</span>
+        `;
+
+        confirmActions.style.display = "flex";
+      });
+
+      btnSend.addEventListener("click", () => {
+        const monto = Number(inpMonto.value);
+        const platId = Number(selPlat.value);
+
+        const payload = {
+          event: "promo_activate",
+          timestamp: Date.now(),
+          promoIndex: idx,              // índice en la lista
+          promo: promo,                 // opcional: puedes quitarlo si prefieres enviar solo IDs
+          montoRecarga: monto,
+          plataformaRecargaId: platId,
+          plataformaRecargaNombre: platformName(platId),
+        };
+
+        // Recomendación: si el payload queda grande, envía solo lo mínimo:
+        // promoIndex, montoRecarga, plataformaRecargaId
+
+        sendToBot(JSON.stringify(payload));
+      });
 
       return card;
     }
 
     function render(promos){
       const content = document.getElementById("content");
-      const countPill = document.getElementById("countPill");
-      countPill.textContent = `${promos.length} promo${promos.length === 1 ? "" : "s"}`;
+      document.getElementById("countPill").textContent = `${promos.length} promo${promos.length===1?"":"s"}`;
 
       if (!promos.length){
         content.innerHTML = `
@@ -580,7 +606,6 @@
       content.appendChild(grid);
     }
 
-    // Ejecutar
     const promos = parsePromosFromUrl();
     render(promos);
   </script>
