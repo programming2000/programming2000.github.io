@@ -5,117 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Promociones</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
     :root{
-      --primary:#2F80ED;
-      --bg:#F5F7FB;
-      --card:#FFFFFF;
-      --text:#1F2937;
-      --muted:#6B7280;
-      --border:#E5E7EB;
-      --ok:#059669;
-      --warn:#B45309;
-      --bad:#B91C1C;
-      --shadow: 0 10px 25px rgba(0,0,0,.08);
-      --radius:16px;
+      --bg1:#0B1220;
+      --bg2:#0F1B36;
+      --card:#0F1A2E;
+      --card2:#0C1528;
+      --text:#E9EEF8;
+      --muted:#A7B3C9;
+      --border:rgba(255,255,255,.10);
+
+      --accent:#7C3AED;   /* violeta */
+      --accent2:#22C55E;  /* verde */
+      --accent3:#3B82F6;  /* azul */
+      --accent4:#EF4444;  /* rojo */
+      --gold:#F59E0B;
+
+      --shadow: 0 16px 40px rgba(0,0,0,.35);
+      --radius: 18px;
     }
 
     *{ box-sizing:border-box; }
+
     body{
       margin:0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:var(--bg);
-      color:var(--text);
+      color: var(--text);
+      background:
+        radial-gradient(1100px 700px at 20% 0%, rgba(124,58,237,.30), transparent 60%),
+        radial-gradient(900px 600px at 80% 10%, rgba(34,197,94,.20), transparent 60%),
+        radial-gradient(900px 700px at 50% 110%, rgba(59,130,246,.18), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
     }
 
     .wrap{
-      max-width: 880px;
+      max-width: 980px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 18px 14px 28px;
     }
 
     .header{
-      background: var(--card);
-      border: 1px solid var(--border);
       border-radius: var(--radius);
+      padding: 16px 16px;
+      background:
+        linear-gradient(135deg, rgba(124,58,237,.18), rgba(34,197,94,.10)),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid var(--border);
       box-shadow: var(--shadow);
-      padding: 14px 16px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header:before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(600px 200px at 20% 0%, rgba(245,158,11,.16), transparent 65%),
+        radial-gradient(600px 250px at 90% 30%, rgba(59,130,246,.16), transparent 65%);
+      pointer-events:none;
+    }
+
+    .headerInner{
+      position:relative;
       display:flex;
       gap:12px;
       align-items:flex-start;
       justify-content:space-between;
-      margin-bottom: 14px;
     }
 
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
     .title h1{
-      font-size: 18px;
       margin:0;
-      letter-spacing:.2px;
+      font-size: 18px;
+      letter-spacing: .2px;
     }
     .title p{
-      margin:0;
-      color:var(--muted);
+      margin:6px 0 0;
+      color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
     }
 
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      border: 1px solid var(--border);
+    .countPill{
+      white-space:nowrap;
+      align-self:flex-start;
       border-radius: 999px;
       padding: 8px 12px;
       font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-      background:#fff;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
     }
 
     .grid{
       display:grid;
       grid-template-columns: repeat(1, minmax(0, 1fr));
       gap: 12px;
+      margin-top: 12px;
     }
-
-    @media (min-width: 820px){
+    @media (min-width: 860px){
       .grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     .card{
-      background: var(--card);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 14px;
-      display:flex;
-      flex-direction:column;
-      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: radial-gradient(600px 220px at 10% 0%, rgba(124,58,237,.18), transparent 55%);
+      pointer-events:none;
+      opacity:.8;
     }
 
-    .cardTop{
+    .cardInner{ position:relative; display:flex; flex-direction:column; gap: 12px; }
+
+    .top{
       display:flex;
+      gap: 10px;
       align-items:flex-start;
       justify-content:space-between;
-      gap: 10px;
     }
 
-    .promoName{
+    .promoTitle{
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap: 4px;
+      min-width: 0;
     }
-    .promoName .line1{
-      font-weight:700;
-      font-size: 14px;
+    .promoTitle .h{
       margin:0;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: .15px;
     }
-    .promoName .line2{
+    .promoTitle .sub{
       margin:0;
       font-size: 12.5px;
       color: var(--muted);
@@ -123,177 +159,246 @@
     }
 
     .badge{
+      white-space:nowrap;
       border-radius: 999px;
-      padding: 6px 10px;
+      padding: 7px 10px;
       font-size: 12px;
-      border: 1px solid var(--border);
-      background:#fff;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
       color: var(--text);
-      white-space: nowrap;
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
     }
+    .badge b{ color: #fff; }
 
-    .table{
-      border: 1px solid var(--border);
-      border-radius: 12px;
+    .section{
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(0,0,0,.18);
       overflow:hidden;
     }
-    .row{
-      display:grid;
-      grid-template-columns: 160px 1fr;
-      gap: 10px;
+
+    .sectionRow{
       padding: 10px 12px;
-      border-top: 1px solid var(--border);
-      background:#fff;
+      border-top: 1px solid rgba(255,255,255,.08);
     }
-    .row:first-child{ border-top:0; }
-    .k{
-      color: var(--muted);
+    .sectionRow:first-child{ border-top: 0; }
+
+    .label{
       font-size: 12px;
-      line-height: 1.3;
-    }
-    .v{
-      font-size: 12.5px;
-      line-height: 1.35;
-      color: var(--text);
+      color: var(--muted);
+      margin:0 0 6px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      letter-spacing: .2px;
     }
 
-    .chips{
+    .value{
+      font-size: 12.8px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .chipsLine{
       display:flex;
       flex-wrap:wrap;
-      gap: 6px;
+      gap:8px;
+      margin-top:6px;
     }
+
     .chip{
       display:inline-flex;
       align-items:center;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,.16);
       border-radius: 999px;
       padding: 6px 10px;
       font-size: 12px;
-      background: #fff;
+      font-weight: 750;
+      background: rgba(255,255,255,.05);
+      backdrop-filter: blur(6px);
     }
 
-    .calc{
-      border: 1px dashed var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
+    /* Colores por plataforma */
+    .chip-apueston{ border-color: rgba(239,68,68,.65); color:#FFD6D6; background: rgba(239,68,68,.14); }
+    .chip-metabet{ border-color: rgba(59,130,246,.70); color:#D7E7FF; background: rgba(59,130,246,.16); }
+    .chip-ppp{ border-color: rgba(34,197,94,.70); color:#D9FFE9; background: rgba(34,197,94,.14); }
+    .chip-otros{ border-color: rgba(245,158,11,.65); color:#FFE8C2; background: rgba(245,158,11,.14); }
+
+    .mono{ font-variant-numeric: tabular-nums; }
+
+    .finalBox{
+      margin-top:6px;
       display:flex;
       flex-direction:column;
-      gap: 10px;
-      background: #fff;
-    }
-    .calcHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    .calcHead .label{
-      font-size: 12.5px;
-      font-weight: 650;
-    }
-    .calcHead .hint{
-      font-size: 12px;
-      color: var(--muted);
+      gap:6px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
     }
 
-    .calcGrid{
-      display:grid;
-      grid-template-columns: 1fr 120px;
-      gap: 10px;
-      align-items:center;
-    }
-    input{
-      width:100%;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 13px;
-      outline:none;
-    }
-    input:focus{
-      border-color: rgba(47,128,237,.6);
-      box-shadow: 0 0 0 3px rgba(47,128,237,.15);
-    }
-    button{
-      border:0;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 13px;
-      cursor:pointer;
-      background: var(--primary);
-      color:#fff;
-      font-weight: 650;
-    }
-
-    .calcOut{
-      font-size: 12.5px;
+    .finalLine{
+      font-size: 12.6px;
       color: var(--text);
       line-height: 1.45;
     }
-    .mono{ font-variant-numeric: tabular-nums; }
+    .finalLine b{ color: #fff; }
+
+    .sim{
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background:
+        radial-gradient(500px 120px at 20% 0%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(500px 120px at 80% 0%, rgba(124,58,237,.16), transparent 60%),
+        rgba(255,255,255,.04);
+      padding: 12px;
+    }
+
+    .simHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 10px;
+    }
+
+    .simTitle{
+      font-size: 12.7px;
+      font-weight: 850;
+      letter-spacing: .2px;
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .simHint{
+      font-size: 12px;
+      color: var(--muted);
+      margin:0;
+      white-space:nowrap;
+    }
+
+    .simGrid{
+      display:grid;
+      grid-template-columns: 1fr 130px;
+      gap: 10px;
+      align-items:center;
+    }
+
+    input{
+      width:100%;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline:none;
+      background: rgba(0,0,0,.25);
+      color: var(--text);
+    }
+    input::placeholder{ color: rgba(167,179,201,.75); }
+    input:focus{
+      border-color: rgba(124,58,237,.65);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.20);
+    }
+
+    button{
+      border:0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      cursor:pointer;
+      font-weight: 850;
+      color:#fff;
+      background: linear-gradient(135deg, var(--accent), rgba(59,130,246,.95));
+      box-shadow: 0 12px 26px rgba(124,58,237,.22);
+    }
+    button:active{ transform: translateY(1px); }
+
+    .simOut{
+      margin-top: 10px;
+      font-size: 12.8px;
+      line-height: 1.45;
+      color: var(--text);
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+    }
 
     .empty{
-      background: var(--card);
-      border: 1px solid var(--border);
       border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
       box-shadow: var(--shadow);
-      padding: 18px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.45;
+      line-height: 1.5;
     }
-    .small{ font-size: 12px; color: var(--muted); }
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="header">
-      <div class="title">
-        <h1>Promociones disponibles</h1>
-        <p>Revisa condiciones, plataformas aplicables y cálculo del regalo.</p>
+      <div class="headerInner">
+        <div class="title">
+          <h1>Promociones disponibles</h1>
+          <p>Visualiza a qué plataformas aplica, condiciones para finalizar y el regalo que obtendrás.</p>
+        </div>
+        <div class="countPill" id="countPill">0 promos</div>
       </div>
-      <div class="pill" id="pillInfo">Cargando…</div>
     </div>
 
     <div id="content"></div>
   </div>
 
   <script>
-    // Telegram WebApp init
+    // Init Telegram WebApp (silencioso)
     try {
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
-    } catch { /* ignore if opened in browser */ }
+    } catch { /* si se abre en navegador normal, no pasa nada */ }
 
-    // Mapeo de IDs a nombres de plataforma
     const PLATAFORMAS = {
-      1: "Apueston",
-      2: "Metabet",
-      3: "PPP US",
-      4: "PPP SOL",
-      5: "KKK",
-      6: "PPP BOL",
-      7: "GGG",
-      8: "Tienda"
+      1: "Apu: Apueston",
+      2: "Az: Metabet",
+      3: "V: PPP US",
+      4: "V: PPP SOL",
+      5: "O: KKK",
+      6: "V: PPP BOL",
+      7: "O: GGG",
+      8: "O: Tienda"
     };
 
-    function platformName(id) {
-      return PLATAFORMAS[id] ?? `Producto ${id}`;
+    function platformName(id){
+      const name = PLATAFORMAS[id];
+      if (!name) return `Producto ${id}`;
+      // Quitamos el prefijo interno (R:, Az:, etc.) al mostrar
+      return name.split(": ").slice(1).join(": ");
     }
 
-    function fmtMoney(n) {
+    function platformClass(id){
+      // Apueston rojo, Metabet azul, PPP verde, resto dorado
+      if (id === 1) return "chip-apueston";
+      if (id === 2) return "chip-metabet";
+      if (id === 3 || id === 4 || id === 6) return "chip-ppp";
+      return "chip-otros";
+    }
+
+    function fmtMoney(n){
       if (n === null || n === undefined || isNaN(Number(n))) return "—";
-      // Ajusta a tu moneda; aquí solo formateo numérico
       return Number(n).toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function fmtPct(n) {
+    function fmtPct(n){
       if (n === null || n === undefined || isNaN(Number(n))) return "—";
       return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
     }
 
-    function parsePromosFromUrl() {
+    function parsePromosFromUrl(){
       const usp = new URLSearchParams(location.search);
       const raw = usp.get("promos");
       if (!raw) return [];
@@ -306,51 +411,7 @@
       }
     }
 
-    /**
-     * Reglas de finalización (interpretación operativa):
-     * - Se define un "rango permitido de crédito final" para poder finalizar:
-     *   - Umbral inferior (mínimo permitido):  MontoRequeridoFinalizar (o % de recarga)
-     *   - Umbral superior (máximo permitido):  MontoMinimoFinalizar (o % de recarga)
-     * - Si el crédito final del usuario está entre [inferior, superior], puede finalizar.
-     *
-     * Nota: Si te interesa otra lógica (por ejemplo, que uno de los dos sea opcional),
-     * es fácil ajustarlo en canFinalize().
-     */
-    function computeFinalizeThresholds(promo, recarga) {
-      const r = Number(recarga);
-      const minFinalIsPct = !!promo.MontoMinimoFinalizarEsPorcentaje;
-      const reqFinalIsPct = !!promo.MontoRequeridoFinalizarEsPorcentaje;
-
-      let upper = Number(promo.MontoMinimoFinalizar);
-      let lower = Number(promo.MontoRequeridoFinalizar);
-
-      if (!isNaN(r)) {
-        if (minFinalIsPct) upper = r * (Number(promo.MontoMinimoFinalizar) / 100);
-        if (reqFinalIsPct) lower = r * (Number(promo.MontoRequeridoFinalizar) / 100);
-      }
-
-      return { lower, upper, lowerIsPct: reqFinalIsPct, upperIsPct: minFinalIsPct };
-    }
-
-    function giftAmount(promo, recarga) {
-      const isPct = !!promo.MontoRegaloEsPorcentaje;
-      if (!isPct) return Number(promo.MontoRegalo);
-      const r = Number(recarga);
-      if (isNaN(r)) return null;
-      return r * (Number(promo.MontoRegalo) / 100);
-    }
-
-    function renderPromoCard(promo, idx) {
-      const validIds = Array.isArray(promo.ProductosValidosId) ? promo.ProductosValidosId : [];
-      const regaloId = Number(promo.ProductoRegaloId);
-
-      const aplicaTxt = validIds.length
-        ? validIds.map(platformName).join(", ")
-        : "—";
-
-      const regaloTxt = platformName(regaloId);
-
-      // Textos de finalización (sin recarga)
+    function buildFinalizeLines(promo){
       const upperTxt = promo.MontoMinimoFinalizarEsPorcentaje
         ? `${fmtPct(promo.MontoMinimoFinalizar)} o menos de lo recargado`
         : `${fmtMoney(promo.MontoMinimoFinalizar)} o menos`;
@@ -359,140 +420,153 @@
         ? `${fmtPct(promo.MontoRequeridoFinalizar)} o más de lo recargado`
         : `${fmtMoney(promo.MontoRequeridoFinalizar)} o más`;
 
-      const regaloMontoTxt = promo.MontoRegaloEsPorcentaje
-        ? `${fmtPct(promo.MontoRegalo)} de lo recargado`
+      return {
+        lowerTxt,
+        upperTxt
+      };
+    }
+
+    function giftLabel(promo){
+      return promo.MontoRegaloEsPorcentaje
+        ? `${fmtPct(promo.MontoRegalo)}`
         : `${fmtMoney(promo.MontoRegalo)}`;
+    }
+
+    function calcGift(promo, recarga){
+      const r = Number(recarga);
+      if (isNaN(r) || r <= 0) return null;
+
+      if (!promo.MontoRegaloEsPorcentaje){
+        // Monto fijo (si en algún momento quieres soportarlo)
+        const g = Number(promo.MontoRegalo);
+        if (isNaN(g)) return null;
+        return { regalo: g, total: r + g };
+      }
+
+      const pct = Number(promo.MontoRegalo);
+      if (isNaN(pct)) return null;
+      const regalo = r * (pct / 100);
+      const total = r + regalo;
+      return { regalo, total };
+    }
+
+    function renderPromoCard(promo, idx){
+      const validIds = Array.isArray(promo.ProductosValidosId) ? promo.ProductosValidosId : [];
+      const regaloId = Number(promo.ProductoRegaloId);
+      const regaloPlataforma = platformName(regaloId);
+
+      const { lowerTxt, upperTxt } = buildFinalizeLines(promo);
 
       const card = document.createElement("div");
       card.className = "card";
 
+      const chipsHtml = (validIds.length ? validIds : []).map(id => {
+        return `<span class="chip ${platformClass(id)}">${platformName(id)}</span>`;
+      }).join("");
+
+      const regaloTxt = promo.MontoRegaloEsPorcentaje
+        ? `Regalo: <b>${giftLabel(promo)}</b> (sobre la recarga)`
+        : `Regalo: <b>${giftLabel(promo)}</b>`;
+
+      const showSim = !!promo.MontoRegaloEsPorcentaje;
+
       card.innerHTML = `
-        <div class="cardTop">
-          <div class="promoName">
-            <p class="line1">Promo #${idx + 1}</p>
-            <p class="line2">
-              Inicia desde <span class="mono">${fmtMoney(promo.MontoMinimo)}</span>
-              y el regalo se acredita en <b>${regaloTxt}</b>.
-            </p>
-          </div>
-          <div class="badge">Regalo: <b>${regaloMontoTxt}</b></div>
-        </div>
-
-        <div class="table">
-          <div class="row">
-            <div class="k">Aplica a</div>
-            <div class="v">
-              <div class="chips">
-                ${
-                  validIds.length
-                    ? validIds.map(id => `<span class="chip">${platformName(id)}</span>`).join("")
-                    : `<span class="chip">—</span>`
-                }
-              </div>
-              <div class="small" style="margin-top:6px">IDs: ${validIds.length ? validIds.join(", ") : "—"}</div>
+        <div class="cardInner">
+          <div class="top">
+            <div class="promoTitle">
+              <p class="h">Promo #${idx + 1}</p>
+              <p class="sub">
+                Inicia desde <b class="mono">${fmtMoney(promo.MontoMinimo)}</b> · Abono del regalo en <b>${regaloPlataforma}</b>
+              </p>
             </div>
+            <div class="badge">${regaloTxt}</div>
           </div>
 
-          <div class="row">
-            <div class="k">Monto mínimo para iniciar</div>
-            <div class="v"><span class="mono">${fmtMoney(promo.MontoMinimo)}</span></div>
-          </div>
+          <div class="section">
+            <div class="sectionRow">
+              <p class="label">Aplica a:</p>
+              <div class="value">
+                <div class="chipsLine">
+                  ${chipsHtml || `<span class="chip chip-otros">—</span>`}
+                </div>
+              </div>
+            </div>
 
-          <div class="row">
-            <div class="k">Condición para finalizar</div>
-            <div class="v">
-              Crédito final debe estar entre:
-              <br />
-              <b>• Mínimo permitido:</b> ${lowerTxt}
-              <br />
-              <b>• Máximo permitido:</b> ${upperTxt}
-              <div class="small" style="margin-top:6px">
-                (Interpretación operativa: si tu crédito final queda dentro del rango, puedes finalizar.)
+            <div class="sectionRow">
+              <p class="label">Condición para finalizar:</p>
+              <div class="value">
+                <div class="finalBox">
+                  <div class="finalLine"><b>Mínimo permitido:</b> ${lowerTxt}</div>
+                  <div class="finalLine"><b>Máximo permitido:</b> ${upperTxt}</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="row">
-            <div class="k">Aclaración del regalo</div>
-            <div class="v">
-              ${
-                promo.MontoRegaloEsPorcentaje
-                  ? `El regalo equivale a un porcentaje de lo recargado y se acredita en <b>${regaloTxt}</b>.`
-                  : `El regalo es un monto fijo y se acredita en <b>${regaloTxt}</b>.`
-              }
-            </div>
-          </div>
-        </div>
+          ${
+            showSim ? `
+              <div class="sim">
+                <div class="simHead">
+                  <p class="simTitle">Simulador de abono</p>
+                  <p class="simHint">Solo para regalo en %</p>
+                </div>
 
-        <div class="calc">
-          <div class="calcHead">
-            <div class="label">Simulador (opcional)</div>
-            <div class="hint">Ingresa la recarga para calcular porcentajes</div>
-          </div>
+                <div class="simGrid">
+                  <input type="number" inputmode="decimal" placeholder="Monto a recargar (ej: 1000)" id="recarga_${idx}" />
+                  <button type="button" id="btn_${idx}">Calcular</button>
+                </div>
 
-          <div class="calcGrid">
-            <input type="number" inputmode="decimal" placeholder="Monto recargado (ej: 100)" id="recarga_${idx}" />
-            <button type="button" id="btn_${idx}">Calcular</button>
-          </div>
-
-          <div class="calcOut" id="out_${idx}">
-            Si algún valor está en porcentaje, aquí verás su equivalente en monto.
-          </div>
+                <div class="simOut" id="out_${idx}">
+                  Ingresa un monto para ver cuánto se cargará en total (recarga + regalo).
+                </div>
+              </div>
+            ` : ``
+          }
         </div>
       `;
 
-      // Eventos
-      const btn = card.querySelector(`#btn_${idx}`);
-      btn.addEventListener("click", () => {
-        const inp = card.querySelector(`#recarga_${idx}`);
-        const recarga = Number(inp.value);
+      if (showSim){
+        const btn = card.querySelector(`#btn_${idx}`);
+        btn.addEventListener("click", () => {
+          const inp = card.querySelector(`#recarga_${idx}`);
+          const out = card.querySelector(`#out_${idx}`);
+          const recarga = Number(inp.value);
 
-        const out = card.querySelector(`#out_${idx}`);
+          if (isNaN(recarga) || recarga <= 0){
+            out.innerHTML = `Ingresa un monto válido mayor a 0.`;
+            return;
+          }
 
-        if (isNaN(recarga) || recarga <= 0) {
-          out.innerHTML = `<span style="color:var(--bad)">Ingresa un monto recargado válido mayor a 0.</span>`;
-          return;
-        }
+          const res = calcGift(promo, recarga);
+          if (!res){
+            out.innerHTML = `No se pudo calcular el regalo con los datos actuales.`;
+            return;
+          }
 
-        const { lower, upper } = computeFinalizeThresholds(promo, recarga);
-        const regalo = giftAmount(promo, recarga);
-
-        const upperLine = promo.MontoMinimoFinalizarEsPorcentaje
-          ? `Máximo permitido: <b class="mono">${fmtMoney(upper)}</b> (por ${fmtPct(promo.MontoMinimoFinalizar)} de ${fmtMoney(recarga)})`
-          : `Máximo permitido: <b class="mono">${fmtMoney(upper)}</b>`;
-
-        const lowerLine = promo.MontoRequeridoFinalizarEsPorcentaje
-          ? `Mínimo permitido: <b class="mono">${fmtMoney(lower)}</b> (por ${fmtPct(promo.MontoRequeridoFinalizar)} de ${fmtMoney(recarga)})`
-          : `Mínimo permitido: <b class="mono">${fmtMoney(lower)}</b>`;
-
-        const giftLine = promo.MontoRegaloEsPorcentaje
-          ? `Regalo estimado: <b class="mono">${fmtMoney(regalo)}</b> (por ${fmtPct(promo.MontoRegalo)} de ${fmtMoney(recarga)})`
-          : `Regalo: <b class="mono">${fmtMoney(regalo)}</b>`;
-
-        out.innerHTML = `
-          ${lowerLine}<br/>
-          ${upperLine}<br/>
-          ${giftLine}<br/>
-          <span class="small">Recuerda: esto solo calcula umbrales en base a la recarga; la validación real depende del crédito final del usuario.</span>
-        `;
-      });
+          out.innerHTML = `
+            Recarga: <b class="mono">${fmtMoney(recarga)}</b><br/>
+            Regalo (${fmtPct(promo.MontoRegalo)}): <b class="mono">${fmtMoney(res.regalo)}</b><br/>
+            <span style="display:inline-block;margin-top:6px">
+              Total a cargar: <b class="mono">${fmtMoney(res.total)} Bs</b>
+            </span>
+          `;
+        });
+      }
 
       return card;
     }
 
-    function render(promos) {
-      const pill = document.getElementById("pillInfo");
+    function render(promos){
       const content = document.getElementById("content");
+      const countPill = document.getElementById("countPill");
+      countPill.textContent = `${promos.length} promo${promos.length === 1 ? "" : "s"}`;
 
-      const isTelegram = !!(window.Telegram && Telegram.WebApp && Telegram.WebApp.initData);
-      pill.textContent = isTelegram ? `Abierto en Telegram` : `Abierto en navegador`;
-
-      if (!promos.length) {
+      if (!promos.length){
         content.innerHTML = `
           <div class="empty">
             No se recibieron promociones.<br/><br/>
-            Debes abrir la MiniApp con el parámetro <b>promos</b> (JSON codificado en URL).<br/>
-            <span class="small">Ejemplo: ?promos=%5B...%5D</span>
+            Abre la MiniApp con el parámetro <b>promos</b> (JSON codificado en URL).<br/>
+            Ejemplo: <span class="mono">?promos=%5B...%5D</span>
           </div>
         `;
         return;
