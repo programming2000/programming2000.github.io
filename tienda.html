@@ -783,7 +783,7 @@
     };
 
     function getPaymentLabel(value) {
-      if (value === "transferencia") return "pago por QR";
+      if (value === "transferencia") return "Pago por QR";
       for (const key in creditDefinitions) {
         if (creditDefinitions[key].value === value) {
           return creditDefinitions[key].main;
@@ -794,7 +794,7 @@
 
     function getPaymentDetail(value) {
       if (value === "transferencia") {
-        return "Pagarás mediante pago por QR. El vendedor te enviará el QR.";
+        return "Pagarás mediante Pago por QR. El vendedor te enviará el QR.";
       }
       for (const key in creditDefinitions) {
         if (creditDefinitions[key].value === value) {
@@ -1053,7 +1053,7 @@
       // Siempre transferencia
       createPaymentItem({
         value: "transferencia",
-        main: "pago por QR",
+        main: "Pago por QR",
         sub: "Te enviaremos un QR para el deposito."
       });
 
