@@ -103,13 +103,13 @@
     }
     .titleBlock .t{
       margin:0;
-      font-weight: 800;
+      font-weight: 850;
       font-size: 14px;
     }
-    .titleBlock .s{
+    .metaLine{
       margin:0;
       color: var(--muted);
-      font-size: 12.8px;
+      font-size: 12.6px;
       line-height: 1.35;
     }
 
@@ -120,6 +120,7 @@
       font-size: 12px;
       background:#fff;
       white-space:nowrap;
+      color: var(--text);
     }
 
     .section{
@@ -166,6 +167,11 @@
     .chip-metabet{ border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
     .chip-ppp{ border-color:#bbf7d0; background:#f0fdf4; color:#166534; }
     .chip-otros{ border-color:#fde68a; background:#fffbeb; color:#92400e; }
+    .chip-blocked{
+      border-color:#e5e7eb;
+      background:#f3f4f6;
+      color:#6b7280;
+    }
 
     .box{
       border: 1px solid var(--border);
@@ -191,7 +197,7 @@
       padding: 10px 12px;
       font-size: 13px;
       cursor:pointer;
-      font-weight: 800;
+      font-weight: 850;
     }
     .btn-primary{
       background: var(--primary);
@@ -199,6 +205,10 @@
     }
     .btn-primary:hover{ background: var(--primary2); }
     .btn-primary:active{ transform: translateY(1px); }
+    .btn-primary[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
 
     .btn-ghost{
       background:#fff;
@@ -246,6 +256,19 @@
       line-height: 1.35;
     }
 
+    .warn{
+      margin-top:6px;
+      font-size: 12.5px;
+      color: #92400e;
+      background:#fffbeb;
+      border:1px solid #fde68a;
+      border-radius: 12px;
+      padding: 10px;
+      line-height: 1.35;
+      display:none;
+    }
+    .warn.show{ display:block; }
+
     .confirmBox{
       display:none;
       margin-top: 6px;
@@ -276,7 +299,7 @@
     <div class="header">
       <div>
         <h1>Promociones disponibles</h1>
-        <p>Activa una promo, indica monto y plataforma, confirma y se enviará al bot para continuar.</p>
+        <p>Activa una promo por plataforma. Si una plataforma ya tiene promo activa, quedará bloqueada.</p>
       </div>
       <div class="count" id="countPill">0 promos</div>
     </div>
@@ -287,6 +310,7 @@
   <script>
     try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
 
+    // Catálogo de plataformas (IDs -> nombre)
     const PLATAFORMAS = {
       1: "Apueston",
       2: "Metabet",
@@ -310,24 +334,38 @@
       if (n === null || n === undefined || isNaN(Number(n))) return "—";
       return Number(n).toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-
     function fmtPct(n){
       if (n === null || n === undefined || isNaN(Number(n))) return "—";
       return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
     }
 
-    function parsePromosFromUrl(){
+    function fmtDateAny(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleString("es-BO", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    function parseJsonParam(paramName){
       const usp = new URLSearchParams(location.search);
-      const raw = usp.get("promos");
-      if (!raw) return [];
+      const raw = usp.get(paramName);
+      if (!raw) return null;
       try {
-        const json = decodeURIComponent(raw);
-        const arr = JSON.parse(json);
-        return Array.isArray(arr) ? arr : [];
+        return JSON.parse(decodeURIComponent(raw));
       } catch {
-        return [];
+        return null;
       }
     }
+
+    // Params:
+    // - promos: lista de promociones completas
+    // - bloqueadas: lista de ids de plataformas que YA tienen promo activa para este usuario
+    const promociones = parseJsonParam("promos") ?? [];
+    const bloqueadas = parseJsonParam("bloqueadas") ?? [];
+    const bloqueadasSet = new Set((Array.isArray(bloqueadas) ? bloqueadas : []).map(x => Number(x)));
 
     // Regla definitiva:
     // - si esPorcentaje=true => umbral = recarga * (valor/100)
@@ -341,67 +379,69 @@
         if (isNaN(r) || r <= 0) return null;
         return r * (v / 100);
       }
-
       return v;
     }
 
-    // Calcula regalo:
+    // Regalo:
     // - si MontoRegaloEsPorcentaje=true => regalo = recarga*(MontoRegalo/100)
     // - si false => regalo = MontoRegalo
-    function computeGift(promo, recarga){
+    function computeGift(param, recarga){
       const r = Number(recarga);
       if (isNaN(r) || r <= 0) return null;
 
-      const giftVal = Number(promo.MontoRegalo);
+      const giftVal = Number(param.MontoRegalo);
       if (isNaN(giftVal)) return null;
 
-      const regalo = promo.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
+      const regalo = param.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
       const total = r + regalo;
       return { regalo, total };
     }
 
-    function giftBadgeText(promo){
-      if (promo.MontoRegaloEsPorcentaje){
-        return `Regalo: <b>${fmtPct(promo.MontoRegalo)}</b>`;
-      }
-      return `Regalo: <b>${fmtMoney(promo.MontoRegalo)}</b>`;
+    function giftBadgeText(param){
+      if (param.MontoRegaloEsPorcentaje) return `Regalo: <b>${fmtPct(param.MontoRegalo)}</b>`;
+      return `Regalo: <b>${fmtMoney(param.MontoRegalo)}</b>`;
     }
 
-    function finalizeTextLines(promo){
-      // Texto general, sin calcular en Bs (porque depende de recarga si hay %)
-      const minTxt = promo.MontoRequeridoFinalizarEsPorcentaje
-        ? `${fmtPct(promo.MontoRequeridoFinalizar)} o más de la recarga`
-        : `${fmtMoney(promo.MontoRequeridoFinalizar)} Bs o más`;
+    function finalizeTextLines(param){
+      const minTxt = param.MontoRequeridoFinalizarEsPorcentaje
+        ? `${fmtPct(param.MontoRequeridoFinalizar)} o más de la recarga`
+        : `${fmtMoney(param.MontoRequeridoFinalizar)} Bs o más`;
 
-      const maxTxt = promo.MontoMinimoFinalizarEsPorcentaje
-        ? `${fmtPct(promo.MontoMinimoFinalizar)} o menos de la recarga`
-        : `${fmtMoney(promo.MontoMinimoFinalizar)} Bs o menos`;
+      const maxTxt = param.MontoMinimoFinalizarEsPorcentaje
+        ? `${fmtPct(param.MontoMinimoFinalizar)} o menos de la recarga`
+        : `${fmtMoney(param.MontoMinimoFinalizar)} Bs o menos`;
 
       return { minTxt, maxTxt };
     }
 
     function sendToBot(payload){
-      // payload debe ser string JSON
       try {
         Telegram.WebApp.sendData(payload);
-        // opcional: cerrar miniapp
         // Telegram.WebApp.close();
       } catch {
-        alert("No se pudo enviar al bot (abre esto dentro de Telegram).");
+        alert("No se pudo enviar al bot. Abre esta MiniApp dentro de Telegram.");
       }
     }
 
     function renderPromoCard(promo, idx){
-      const validIds = Array.isArray(promo.ProductosValidosId) ? promo.ProductosValidosId : [];
-      const regaloId = Number(promo.ProductoRegaloId);
+      // promo: { Id, Nro, Nombre, FechaInicio, FechaFin, Parametros }
+      const p = promo?.Parametros ?? promo; // por compatibilidad, pero lo esperado es Parametros
+      const validIds = Array.isArray(p.ProductosValidosId) ? p.ProductosValidosId : [];
+      const regaloId = Number(p.ProductoRegaloId);
 
-      const chipsHtml = validIds.map(id =>
-        `<span class="chip ${platformClass(id)}">${platformName(id)}</span>`
-      ).join("");
+      // Plataformas disponibles (no bloqueadas)
+      const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
+      const allBlocked = validIds.length > 0 && disponibles.length === 0;
+
+      const chipsHtml = validIds.map(id => {
+        const isBlocked = bloqueadasSet.has(Number(id));
+        const cls = isBlocked ? "chip-blocked" : platformClass(id);
+        const label = platformName(id) + (isBlocked ? " (ocupada)" : "");
+        return `<span class="chip ${cls}">${label}</span>`;
+      }).join("");
 
       const regaloTxtPlataforma = platformName(regaloId);
-
-      const { minTxt, maxTxt } = finalizeTextLines(promo);
+      const { minTxt, maxTxt } = finalizeTextLines(p);
 
       const card = document.createElement("div");
       card.className = "card";
@@ -409,12 +449,16 @@
       card.innerHTML = `
         <div class="top">
           <div class="titleBlock">
-            <p class="t">Promo #${idx + 1}</p>
-            <p class="s">
-              Inicia desde <b class="mono">${fmtMoney(promo.MontoMinimo)}</b> Bs · Regalo se acredita en <b>${regaloTxtPlataforma}</b>
+            <p class="t">${promo?.Nombre ?? ("Promo #" + (idx + 1))}</p>
+            <p class="metaLine">
+              <b>Nro:</b> ${promo?.Nro ?? (idx + 1)} ·
+              <b>Vigencia:</b> ${fmtDateAny(promo?.FechaInicio)} → ${fmtDateAny(promo?.FechaFin)}
+            </p>
+            <p class="metaLine">
+              Inicia desde <b class="mono">${fmtMoney(p.MontoMinimo)}</b> Bs · Regalo se acredita en <b>${regaloTxtPlataforma}</b>
             </p>
           </div>
-          <div class="badge">${giftBadgeText(promo)}</div>
+          <div class="badge">${giftBadgeText(p)}</div>
         </div>
 
         <div class="section">
@@ -429,15 +473,24 @@
             <p class="label">Condición para finalizar:</p>
             <div class="value">
               <div class="box">
-                <div><b>Igual o más de:</b> ${minTxt}</div>
-                <div><b>Igual o menos de:</b> ${maxTxt}</div>
+                <div><b>Mínimo requerido:</b> ${minTxt}</div>
+                <div><b>Máximo permitido:</b> ${maxTxt}</div>
+              </div>
+              <div class="note" style="margin-top:6px">
+                Si la condición está en %, se calcula en base a tu recarga (por ejemplo 150% de 1000 = 1500 Bs).
               </div>
             </div>
           </div>
         </div>
 
         <div class="actions">
-          <button class="btn btn-primary" id="activate_${idx}">Activar promo</button>
+          <button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>
+            Activar promo
+          </button>
+        </div>
+
+        <div class="warn" id="warn_${idx}">
+          No puedes activar esta promoción porque todas las plataformas aplicables ya tienen una promo activa.
         </div>
 
         <div class="panel" id="panel_${idx}">
@@ -447,9 +500,11 @@
               <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
             </div>
             <div>
-              <div class="note" style="margin-bottom:6px">Plataforma</div>
+              <div class="note" style="margin-bottom:6px">Plataforma (solo disponibles)</div>
               <select id="plat_${idx}">
-                ${(validIds.length ? validIds : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")}
+                ${
+                  (disponibles.length ? disponibles : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")
+                }
               </select>
             </div>
           </div>
@@ -470,6 +525,7 @@
 
       const btnActivate = card.querySelector(`#activate_${idx}`);
       const panel = card.querySelector(`#panel_${idx}`);
+      const warn = card.querySelector(`#warn_${idx}`);
       const btnCancel = card.querySelector(`#cancel_${idx}`);
       const btnPreview = card.querySelector(`#preview_${idx}`);
       const boxConfirm = card.querySelector(`#confirm_${idx}`);
@@ -486,22 +542,27 @@
         confirmActions.style.display = "none";
       }
 
-      btnActivate.addEventListener("click", () => {
+      if (allBlocked){
+        warn.classList.add("show");
+      }
+
+      btnActivate?.addEventListener("click", () => {
+        if (allBlocked) return;
         panel.classList.add("show");
         hideConfirm();
         inpMonto.focus();
       });
 
-      btnCancel.addEventListener("click", () => {
+      btnCancel?.addEventListener("click", () => {
         panel.classList.remove("show");
         hideConfirm();
       });
 
-      btnBack.addEventListener("click", () => {
+      btnBack?.addEventListener("click", () => {
         hideConfirm();
       });
 
-      btnPreview.addEventListener("click", () => {
+      btnPreview?.addEventListener("click", () => {
         const monto = Number(inpMonto.value);
         if (isNaN(monto) || monto <= 0){
           boxConfirm.classList.add("show");
@@ -509,8 +570,8 @@
           confirmActions.style.display = "none";
           return;
         }
-        // Validar monto mínimo de inicio
-        const minStart = Number(promo.MontoMinimo);
+
+        const minStart = Number(p.MontoMinimo);
         if (!isNaN(minStart) && monto < minStart){
           boxConfirm.classList.add("show");
           boxConfirm.innerHTML = `El monto mínimo para iniciar esta promo es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
@@ -519,63 +580,71 @@
         }
 
         const platId = Number(selPlat.value);
+        if (!platId || isNaN(platId)){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Selecciona una plataforma válida.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        // Seguridad: no permitir enviar si está bloqueada
+        if (bloqueadasSet.has(platId)){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Esa plataforma ya tiene una promo activa. Elige otra plataforma disponible.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
         const platName = platformName(platId);
 
-        // Calcular umbrales en Bs con la regla definitiva
-        const minReq = computeThreshold(promo.MontoRequeridoFinalizar, !!promo.MontoRequeridoFinalizarEsPorcentaje, monto);
-        const maxAllow = computeThreshold(promo.MontoMinimoFinalizar, !!promo.MontoMinimoFinalizarEsPorcentaje, monto);
+        // Umbrales calculados en Bs según la lógica final
+        const minReq = computeThreshold(p.MontoRequeridoFinalizar, !!p.MontoRequeridoFinalizarEsPorcentaje, monto);
+        const maxAllow = computeThreshold(p.MontoMinimoFinalizar, !!p.MontoMinimoFinalizarEsPorcentaje, monto);
 
-        // Calcular regalo y total a cargar
-        const g = computeGift(promo, monto);
+        const g = computeGift(p, monto);
 
-        const minReqLine = (minReq === null)
-          ? `—`
-          : `<b class="mono">${fmtMoney(minReq)}</b> Bs`;
+        const minReqLine = (minReq === null) ? `—` : `<b class="mono">${fmtMoney(minReq)}</b> Bs`;
+        const maxAllowLine = (maxAllow === null) ? `—` : `<b class="mono">${fmtMoney(maxAllow)}</b> Bs`;
 
-        const maxAllowLine = (maxAllow === null)
-          ? `—`
-          : `<b class="mono">${fmtMoney(maxAllow)}</b> Bs`;
-
-        const giftLine = g
-          ? `<b class="mono">${fmtMoney(g.regalo)}</b> Bs`
-          : `—`;
-
-        const totalLine = g
-          ? `<b class="mono">${fmtMoney(g.total)}</b> Bs`
-          : `—`;
+        const giftLine = g ? `<b class="mono">${fmtMoney(g.regalo)}</b> Bs` : `—`;
+        const totalLine = g ? `<b class="mono">${fmtMoney(g.total)}</b> Bs` : `—`;
 
         boxConfirm.classList.add("show");
         boxConfirm.innerHTML = `
           <b>Confirmación</b><br/>
-          Vas a cargar <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b> usando la <b>Promo #${idx + 1}</b>.<br/><br/>
+          Promo: <b>${promo?.Nombre ?? ("Promo #" + (idx + 1))}</b> (Nro ${promo?.Nro ?? (idx + 1)})<br/>
+          Vigencia: <b>${fmtDateAny(promo?.FechaInicio)}</b> → <b>${fmtDateAny(promo?.FechaFin)}</b><br/><br/>
+
+          Cargarás <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b>.<br/><br/>
 
           <b>Regalo:</b> ${giftLine}<br/>
           <b>Total a cargar:</b> ${totalLine}<br/><br/>
 
           <b>Para finalizar (calculado con tu recarga):</b><br/>
-          <span>• Igual o más de: ${minReqLine}</span><br/>
-          <span>• Igual o menos de: ${maxAllowLine}</span>
+          • Mínimo requerido: ${minReqLine}<br/>
+          • Máximo permitido: ${maxAllowLine}
         `;
 
         confirmActions.style.display = "flex";
       });
 
-      btnSend.addEventListener("click", () => {
+      btnSend?.addEventListener("click", () => {
         const monto = Number(inpMonto.value);
         const platId = Number(selPlat.value);
 
+        // Payload mínimo recomendado (más seguro/ligero):
         const payload = {
           event: "promo_activate",
           timestamp: Date.now(),
-          promoIndex: idx,              // índice en la lista
-          promo: promo,                 // opcional: puedes quitarlo si prefieres enviar solo IDs
+          promoId: promo?.Id ?? null,
+          promoNro: promo?.Nro ?? null,
+          promoNombre: promo?.Nombre ?? null,
+          fechaInicio: promo?.FechaInicio ?? null,
+          fechaFin: promo?.FechaFin ?? null,
+          parametros: promo?.Parametros ?? null, // si prefieres, puedes quitarlo
           montoRecarga: monto,
-          plataformaRecargaId: platId,
-          plataformaRecargaNombre: platformName(platId),
+          plataformaRecargaId: platId
         };
-
-        // Recomendación: si el payload queda grande, envía solo lo mínimo:
-        // promoIndex, montoRecarga, plataformaRecargaId
 
         sendToBot(JSON.stringify(payload));
       });
@@ -587,12 +656,14 @@
       const content = document.getElementById("content");
       document.getElementById("countPill").textContent = `${promos.length} promo${promos.length===1?"":"s"}`;
 
-      if (!promos.length){
+      if (!Array.isArray(promos) || promos.length === 0){
         content.innerHTML = `
           <div class="empty">
             No se recibieron promociones.<br/><br/>
-            Abre la MiniApp con el parámetro <b>promos</b> (JSON codificado en URL).<br/>
-            Ejemplo: <span class="mono">?promos=%5B...%5D</span>
+            Parámetros esperados:<br/>
+            • <b>promos</b> = lista JSON de promociones<br/>
+            • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas<br/><br/>
+            Ejemplo: <span class="mono">?promos=%5B...%5D&amp;bloqueadas=%5B2%2C6%5D</span>
           </div>
         `;
         return;
@@ -606,8 +677,7 @@
       content.appendChild(grid);
     }
 
-    const promos = parsePromosFromUrl();
-    render(promos);
+    render(promociones);
   </script>
 </body>
 </html>
