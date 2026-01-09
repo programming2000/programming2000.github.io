@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MiniApp • Catálogo de Productos</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Leaflet (para mapa interactivo tipo Google Maps) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
   <style>
     :root {
       --primary: #4a90e2;
@@ -32,7 +42,7 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .app-title {
@@ -44,6 +54,40 @@
       font-size: 0.9rem;
       color: var(--muted);
     }
+
+    /* NAV DE PASOS */
+
+    .steps-nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .step-nav-btn {
+      flex: 1;
+      min-width: 0;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 4px 6px;
+      font-size: 0.8rem;
+      background: #f9fafb;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .step-nav-btn.step-nav-active {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .step { display: none; }
+    .step-active { display: block; }
+
+    /* PRODUCTOS */
 
     .products-grid {
       display: grid;
@@ -81,7 +125,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;  /* mostrar la imagen completa */
+      object-fit: contain;
     }
 
     .product-body {
@@ -118,11 +162,8 @@
     }
 
     .price { font-weight: 700; }
-
     .stock { font-size: 0.75rem; }
-
     .stock-low { color: var(--danger); }
-
     .stock-ok { color: var(--success); }
 
     .product-footer {
@@ -200,6 +241,8 @@
     .cart-summary-main { font-weight: 600; }
 
     .badge-empty { color: var(--muted); }
+
+    /* MODAL DETALLE PRODUCTO */
 
     .modal-backdrop {
       position: fixed;
@@ -307,21 +350,307 @@
       font-weight: 600;
       text-align: right;
     }
+
+    /* PASO 2: ENTREGA */
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .section-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+    }
+
+    .map-container {
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      background: #f9fafb;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .field-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .field-input, .field-textarea {
+      width: 100%;
+      font-size: 0.9rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .field-input:focus, .field-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .field-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .helper-text {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* PASO 3: PAGO */
+
+    .payment-options {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .payment-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .payment-item input[type="radio"] {
+      transform: scale(1.1);
+    }
+
+    .payment-label-main {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .payment-label-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* PASO 4: RESUMEN FINAL */
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .item-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      font-size: 0.85rem;
+    }
+
+    .item-row-primary {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+
+    .item-row-secondary {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(37, 99, 235, 0.06);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
   </style>
 </head>
 <body>
   <div class="app-header">
-    <center><div class="app-title">🛒 Tienda 🛍️</div></center>
-    <div class="app-subtitle">
-      Grandes ofertas, precios bajos y productos que te encantarán.
+    <div class="app-title" id="headerTitle">🛒 Catálogo de Productos</div>
+    <div class="app-subtitle" id="headerSubtitle">
+      Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.
     </div>
   </div>
 
-  <div id="productsContainer" class="products-grid"></div>
+  <!-- NAV PASOS -->
+  <div class="steps-nav">
+    <button class="step-nav-btn step-nav-active" data-step="1">1. Productos</button>
+    <button class="step-nav-btn" data-step="2">2. Entrega</button>
+    <button class="step-nav-btn" data-step="3">3. Pago</button>
+    <button class="step-nav-btn" data-step="4">4. Resumen</button>
+  </div>
 
-  <div id="cartSummary" class="cart-summary">
-    <span class="cart-summary-label">Total:</span>
-    <span id="cartInfo" class="cart-summary-main badge-empty">Bs. 0.00 (0 prod.)</span>
+  <!-- PASO 1: PRODUCTOS -->
+  <div id="step1" class="step step-active">
+    <div id="productsContainer" class="products-grid"></div>
+
+    <div id="cartSummary" class="cart-summary">
+      <span class="cart-summary-label">Total:</span>
+      <span id="cartInfo" class="cart-summary-main badge-empty">Bs. 0.00 (0 prod.)</span>
+    </div>
+  </div>
+
+  <!-- PASO 2: ENTREGA -->
+  <div id="step2" class="step">
+    <!-- <div class="section-title">📍 Datos de entrega</div> -->
+    <!-- <div class="section-text"> -->
+      <!-- Selecciona tu ubicación, ingresa una referencia para encontrar el lugar y tu número de teléfono. -->
+    <!-- </div> -->
+
+    <div class="card">
+      <div class="field-label">Ubicación en el mapa *</div>
+      <button id="btnUseLocation" class="btn-secondary">Usar mi ubicación actual</button>
+      <div id="locationStatus" class="helper-text" style="margin-top:4px;">
+        Aún no se ha seleccionado una ubicación.
+      </div>
+      <div class="map-container" style="margin-top:8px;">
+        <div id="map"></div>
+      </div>
+      <div class="helper-text">
+        Es obligatorio seleccionar tu ubicación precisa (si tu dispositivo lo permite).
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-group">
+        <label for="deliveryReference" class="field-label">Referencia de entrega *</label>
+        <textarea
+          id="deliveryReference"
+          class="field-textarea"
+          placeholder="Ej: Casa con puerta azul frente a la plaza, tercer piso, timbre 3B..."
+        ></textarea>
+      </div>
+
+      <div class="field-group">
+        <label for="deliveryPhone" class="field-label">Número de teléfono *</label>
+        <input
+          id="deliveryPhone"
+          class="field-input"
+          type="tel"
+          inputmode="tel"
+          placeholder="Ej: 71234567"
+        />
+        <div class="helper-text">
+          Usaremos este número para confirmar tu pedido.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 3: PAGO (sin resumen) -->
+  <div id="step3" class="step">
+    <!-- <div class="section-title">💳 Método de pago</div> -->
+    <!-- <div class="section-text"> -->
+      <!-- Elige cómo quieres pagar tu pedido. -->
+    <!-- </div> -->
+
+    <div class="card">
+      <div id="paymentOptions" class="payment-options"></div>
+    </div>
+  </div>
+
+  <!-- PASO 4: RESUMEN FINAL -->
+  <div id="step4" class="step">
+    <!-- <div class="section-title">✅ Revisa tu pedido</div> -->
+    <!-- <div class="section-text"> -->
+      <!-- Verifica todos los datos antes de enviar el pedido al vendedor. -->
+    <!-- </div> -->
+
+    <div class="card">
+      <div class="field-label">Productos seleccionados</div>
+      <div id="finalItemsList" class="items-list"></div>
+      <div class="summary-row" style="margin-top:8px;">
+        <span>Total de productos:</span>
+        <span id="finalItemsCount">0</span>
+      </div>
+      <div class="summary-row">
+        <span>Total a pagar:</span>
+        <span id="finalTotalAmount">Bs. 0.00</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Datos de entrega</div>
+      <div class="summary-row">
+        <span>Teléfono:</span>
+        <span id="finalPhone">-</span>
+      </div>
+      <div class="summary-row">
+        <span>Referencia:</span>
+        <span id="finalRef">-</span>
+      </div>
+      <div class="summary-row">
+        <span>Ubicación:</span>
+        <span id="finalLocation">Sin ubicación precisa</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Forma de pago</div>
+      <div class="summary-row">
+        <span>Método:</span>
+        <span id="finalPaymentMethod">-</span>
+      </div>
+      <div class="helper-text" id="finalPaymentDetail" style="margin-top:6px;">
+      </div>
+    </div>
+
+    <div class="helper-text">
+      Cuando presiones <span class="badge">Enviar pedido</span>, tus datos se enviarán al bot para procesar tu compra.
+    </div>
   </div>
 
   <!-- MODAL DETALLE PRODUCTO -->
@@ -373,10 +702,49 @@
 
     let products = [];
     const cart = {}; // { productId: qty }
+    let currentStep = 1;
+
+    // Entrega
+    let deliveryLat = null;
+    let deliveryLng = null;
+
+    // Mapa Leaflet
+    let map = null;
+    let userMarker = null;
+
+    // Pago
+    let selectedPaymentMethod = null;
 
     const productsContainer = document.getElementById("productsContainer");
     const cartInfo = document.getElementById("cartInfo");
 
+    const headerTitle = document.getElementById("headerTitle");
+    const headerSubtitle = document.getElementById("headerSubtitle");
+
+    const step1 = document.getElementById("step1");
+    const step2 = document.getElementById("step2");
+    const step3 = document.getElementById("step3");
+    const step4 = document.getElementById("step4");
+
+    const stepsNavButtons = document.querySelectorAll(".step-nav-btn");
+
+    const btnUseLocation = document.getElementById("btnUseLocation");
+    const locationStatus = document.getElementById("locationStatus");
+    const deliveryReferenceInput = document.getElementById("deliveryReference");
+    const deliveryPhoneInput = document.getElementById("deliveryPhone");
+
+    const finalItemsList = document.getElementById("finalItemsList");
+    const finalItemsCount = document.getElementById("finalItemsCount");
+    const finalTotalAmount = document.getElementById("finalTotalAmount");
+    const finalPhone = document.getElementById("finalPhone");
+    const finalRef = document.getElementById("finalRef");
+    const finalLocation = document.getElementById("finalLocation");
+    const finalPaymentMethod = document.getElementById("finalPaymentMethod");
+    const finalPaymentDetail = document.getElementById("finalPaymentDetail");
+
+    const paymentOptionsContainer = document.getElementById("paymentOptions");
+
+    // Modal
     const productModal = document.getElementById("productModal");
     const modalTitle = document.getElementById("modalTitle");
     const modalImage = document.getElementById("modalImage");
@@ -390,6 +758,185 @@
 
     let currentModalProductId = null;
 
+    // Métodos de pago conocidos
+    const creditDefinitions = {
+      apueston: {
+        value: "credito_apueston",
+        main: "Crédito Apueston",
+        sub: "Usarás tu saldo de crédito en Apueston."
+      },
+      metabet: {
+        value: "credito_metabet",
+        main: "Crédito Metabet",
+        sub: "Usarás tu saldo de crédito en Metabet."
+      },
+      pppokerus: {
+        value: "credito_pppoker_us",
+        main: "Crédito PPPoker USA",
+        sub: "Usarás tu crédito en PPPoker (US)."
+      },
+      pppokersol: {
+        value: "credito_pppoker_sol",
+        main: "Crédito PPPoker Sol",
+        sub: "Usarás tu crédito en PPPoker (Sol)."
+      }
+    };
+
+    function getPaymentLabel(value) {
+      if (value === "transferencia") return "pago por QR";
+      for (const key in creditDefinitions) {
+        if (creditDefinitions[key].value === value) {
+          return creditDefinitions[key].main;
+        }
+      }
+      return value || "-";
+    }
+
+    function getPaymentDetail(value) {
+      if (value === "transferencia") {
+        return "Pagarás mediante pago por QR. El vendedor te enviará los datos de la cuenta.";
+      }
+      for (const key in creditDefinitions) {
+        if (creditDefinitions[key].value === value) {
+          return creditDefinitions[key].sub;
+        }
+      }
+      return "";
+    }
+
+    // --------- MAPA: init y manejo de marcador draggable ---------
+
+    function setUserLocation(lat, lng, source) {
+      deliveryLat = lat;
+      deliveryLng = lng;
+
+      const latlng = [lat, lng];
+
+      if (!userMarker) {
+        userMarker = L.marker(latlng, { draggable: true }).addTo(map);
+        userMarker.on("dragend", (e) => {
+          const pos = e.target.getLatLng();
+          deliveryLat = pos.lat;
+          deliveryLng = pos.lng;
+          locationStatus.textContent =
+            `Ubicación ajustada: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+        });
+      } else {
+        userMarker.setLatLng(latlng);
+      }
+
+      const label =
+        source === "drag"
+          ? "Ubicación ajustada"
+          : source === "click"
+          ? "Ubicación seleccionada"
+          : "Ubicación seleccionada";
+
+      locationStatus.textContent =
+        `${label}: ${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+
+      map.setView(latlng, 17, { animate: true });
+    }
+
+    function initMap() {
+      const bolCenter = [-16.29, -63.59]; // Bolivia
+      map = L.map('map').setView(bolCenter, 6);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Permitir seleccionar lugar haciendo tap en el mapa
+      map.on("click", (e) => {
+        setUserLocation(e.latlng.lat, e.latlng.lng, "click");
+      });
+    }
+
+    // Totales del carrito
+    function getCartTotals() {
+      let totalItems = 0;
+      let totalAmount = 0;
+
+      Object.keys(cart).forEach((idStr) => {
+        const id = Number(idStr);
+        const qty = cart[id];
+        const product = products.find((x) => x.id === id);
+        if (!product) return;
+        totalItems += qty;
+        totalAmount += qty * product.price;
+      });
+
+      return { totalItems, totalAmount };
+    }
+
+    // Actualizar nav de pasos
+    function updateStepsNav() {
+      stepsNavButtons.forEach(btn => {
+        const step = Number(btn.dataset.step);
+        btn.classList.toggle("step-nav-active", step === currentStep);
+      });
+    }
+
+    // Actualizar botón principal según paso
+    function updateMainButton() {
+      if (!tg) return;
+      const { totalItems, totalAmount } = getCartTotals();
+
+      if (currentStep === 1) {
+        if (totalItems === 0) {
+          tg.MainButton.hide();
+        } else {
+          tg.MainButton.setText(`Continuar • Bs. ${totalAmount.toFixed(2)}`);
+          tg.MainButton.show();
+        }
+      } else if (currentStep === 2 || currentStep === 3) {
+        tg.MainButton.setText("Continuar");
+        tg.MainButton.show();
+      } else if (currentStep === 4) {
+        if (totalItems === 0) {
+          tg.MainButton.hide();
+        } else {
+          tg.MainButton.setText(`Enviar pedido • Bs. ${totalAmount.toFixed(2)}`);
+          tg.MainButton.show();
+        }
+      }
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+
+      [step1, step2, step3, step4].forEach(s => s.classList.remove("step-active"));
+
+      if (step === 1) {
+        step1.classList.add("step-active");
+        headerTitle.textContent = "🛒 Catálogo de Productos";
+        headerSubtitle.textContent = "Toca un producto para ver el detalle. Usa +, − o escribe la cantidad. Abajo verás el total.";
+      } else if (step === 2) {
+        step2.classList.add("step-active");
+        headerTitle.textContent = "📍 Datos de entrega";
+        headerSubtitle.textContent = "Selecciona tu ubicación, referencia y número de teléfono.";
+        // Ajustar mapa al hacerse visible
+        if (map) {
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 200);
+        }
+      } else if (step === 3) {
+        step3.classList.add("step-active");
+        headerTitle.textContent = "💳 Método de pago";
+        headerSubtitle.textContent = "Elige cómo pagarás tu pedido.";
+      } else if (step === 4) {
+        step4.classList.add("step-active");
+        headerTitle.textContent = "✅ Confirmar pedido";
+        headerSubtitle.textContent = "Revisa todo y envía tu pedido al vendedor.";
+        actualizarResumenPaso4();
+      }
+
+      updateStepsNav();
+      updateMainButton();
+    }
+
     // Cargar productos desde ?products=<JSON codificado>
     function initProducts() {
       try {
@@ -397,12 +944,10 @@
         const productsParam = params.get("products");
 
         if (productsParam) {
-          // URLSearchParams ya suele decodificar %5B...%5D → [...]
           let raw = null;
           try {
             raw = JSON.parse(productsParam);
           } catch (e1) {
-            // Si por alguna razón viene sin decodificar, intentamos decodeURIComponent
             try {
               const decoded = decodeURIComponent(productsParam);
               raw = JSON.parse(decoded);
@@ -423,14 +968,7 @@
                   : "https://via.placeholder.com/600x400?text=Sin+Imagen";
               const stock = Number(p.stock ?? 0) || 0;
 
-              return {
-                id,
-                name,
-                description,
-                price,
-                image,
-                stock
-              };
+              return { id, name, description, price, image, stock };
             });
             return;
           }
@@ -439,7 +977,7 @@
         console.warn("Error general al leer 'products' desde la URL:", e);
       }
 
-      // Fallback de demo para pruebas en navegador si no hay datos
+      // Fallback demo
       products = [
         {
           id: 1,
@@ -458,6 +996,76 @@
           stock: 3,
         },
       ];
+    }
+
+    // Cargar métodos de crédito desde ?creditPlatforms=
+    function initPaymentOptions() {
+      const params = new URLSearchParams(window.location.search);
+      const platformsParam = params.get("creditPlatforms");
+
+      const extraMethods = [];
+
+      if (platformsParam) {
+        let arr = null;
+        try {
+          arr = JSON.parse(platformsParam);
+        } catch {
+          arr = platformsParam.split(",").map(x => x.trim()).filter(Boolean);
+        }
+
+        if (Array.isArray(arr)) {
+          arr.forEach(code => {
+            const key = String(code).toLowerCase();
+            if (creditDefinitions[key]) {
+              extraMethods.push(creditDefinitions[key]);
+            }
+          });
+        }
+      }
+
+      paymentOptionsContainer.innerHTML = "";
+
+      function createPaymentItem(def) {
+        const wrapper = document.createElement("label");
+        wrapper.className = "payment-item";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "paymentMethod";
+        input.value = def.value;
+
+        const textDiv = document.createElement("div");
+        const main = document.createElement("div");
+        main.className = "payment-label-main";
+        main.textContent = def.main;
+        const sub = document.createElement("div");
+        sub.className = "payment-label-sub";
+        sub.textContent = def.sub;
+
+        textDiv.appendChild(main);
+        textDiv.appendChild(sub);
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(textDiv);
+        paymentOptionsContainer.appendChild(wrapper);
+      }
+
+      // Siempre transferencia
+      createPaymentItem({
+        value: "transferencia",
+        main: "pago por QR",
+        sub: "Te enviaremos un QR para el deposito."
+      });
+
+      // Créditos adicionales según parámetro
+      extraMethods.forEach(def => createPaymentItem(def));
+
+      // Actualizar selectedPaymentMethod cuando el usuario cambia radio
+      paymentOptionsContainer.addEventListener("change", (e) => {
+        if (e.target && e.target.name === "paymentMethod") {
+          selectedPaymentMethod = e.target.value;
+        }
+      });
     }
 
     function renderProducts() {
@@ -598,31 +1206,17 @@
     }
 
     function updateCartSummary() {
-      const ids = Object.keys(cart);
-      if (ids.length === 0) {
+      const { totalItems, totalAmount } = getCartTotals();
+
+      if (totalItems === 0) {
         cartInfo.textContent = "Bs. 0.00 (0 prod.)";
         cartInfo.classList.add("badge-empty");
-        if (tg) tg.MainButton.hide();
-        return;
+      } else {
+        cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
+        cartInfo.classList.remove("badge-empty");
       }
 
-      let totalItems = 0;
-      let totalAmount = 0;
-      ids.forEach((idStr) => {
-        const id = Number(idStr);
-        const qty = cart[id];
-        const product = products.find((x) => x.id === id);
-        totalItems += qty;
-        totalAmount += qty * product.price;
-      });
-
-      cartInfo.textContent = `Bs. ${totalAmount.toFixed(2)} (${totalItems} prod.)`;
-      cartInfo.classList.remove("badge-empty");
-
-      if (tg) {
-        tg.MainButton.setText(`Enviar pedido • Bs. ${totalAmount.toFixed(2)}`);
-        tg.MainButton.show();
-      }
+      updateMainButton();
     }
 
     function openProductModal(productId) {
@@ -718,35 +1312,193 @@
       }
     }
 
+    // Botón de geolocalización
+    btnUseLocation.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        locationStatus.textContent = "Tu dispositivo no soporta geolocalización.";
+        return;
+      }
+
+      locationStatus.textContent = "Obteniendo ubicación...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserLocation(lat, lng, "geoloc");
+        },
+        (err) => {
+          console.warn("Error geolocalización:", err);
+          locationStatus.textContent =
+            "No se pudo obtener tu ubicación. Puedes seleccionarla tocando el mapa o habilitar permisos.";
+        }
+      );
+    });
+
+    // Resumen del paso 4
+    function actualizarResumenPaso4() {
+      const { totalItems, totalAmount } = getCartTotals();
+
+      finalItemsList.innerHTML = "";
+      Object.keys(cart).forEach(idStr => {
+        const id = Number(idStr);
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+        const qty = cart[id];
+        const subtotal = qty * product.price;
+
+        const row = document.createElement("div");
+        row.className = "item-row";
+        row.innerHTML = `
+          <div class="item-row-primary">
+            <span>${product.name}</span>
+            <span>Bs. ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="item-row-secondary">
+            <span>Cantidad: ${qty}</span>
+            <span>Bs. ${product.price.toFixed(2)} c/u</span>
+          </div>
+        `;
+        finalItemsList.appendChild(row);
+      });
+
+      finalItemsCount.textContent = totalItems;
+      finalTotalAmount.textContent = `Bs. ${totalAmount.toFixed(2)}`;
+
+      const phone = deliveryPhoneInput.value.trim();
+      finalPhone.textContent = phone || "-";
+
+      const ref = deliveryReferenceInput.value.trim();
+      finalRef.textContent = ref || "-";
+
+      if (deliveryLat != null && deliveryLng != null) {
+        finalLocation.textContent =
+          `${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`;
+      } else {
+        finalLocation.textContent = "Sin ubicación precisa";
+      }
+
+      finalPaymentMethod.textContent = getPaymentLabel(selectedPaymentMethod);
+      finalPaymentDetail.textContent = getPaymentDetail(selectedPaymentMethod);
+    }
+
+    // Navegación manual por los botones de pasos
+    stepsNavButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const step = Number(btn.dataset.step);
+        goToStep(step);
+      });
+    });
+
+    // Manejo del botón principal de Telegram (multi-paso)
     if (tg) {
       tg.onEvent("mainButtonClicked", () => {
-        const items = Object.keys(cart).map((idStr) => {
-          const id = Number(idStr);
-          const product = products.find((x) => x.id === id);
-          return {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            qty: cart[id],
-            subtotal: product.price * cart[id],
+        const { totalItems, totalAmount } = getCartTotals();
+
+        if (currentStep === 1) {
+          if (totalItems === 0) {
+            alert("Selecciona al menos un producto antes de continuar.");
+            return;
+          }
+          goToStep(2);
+        } else if (currentStep === 2) {
+          const ref = deliveryReferenceInput.value.trim();
+          const phone = deliveryPhoneInput.value.trim();
+
+          if (!ref) {
+            alert("Por favor ingresa una referencia de entrega.");
+            return;
+          }
+          if (!phone) {
+            alert("Por favor ingresa tu número de teléfono.");
+            return;
+          }
+          if (deliveryLat == null || deliveryLng == null) {
+            alert("Por favor selecciona tu ubicación precisa tocando el mapa o usando el botón 'Usar mi ubicación actual'.");
+            return;
+          }
+
+          goToStep(3);
+        } else if (currentStep === 3) {
+          if (!selectedPaymentMethod) {
+            const selected = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!selected) {
+              alert("Por favor selecciona un método de pago.");
+              return;
+            }
+            selectedPaymentMethod = selected.value;
+          }
+          goToStep(4);
+        } else if (currentStep === 4) {
+          // Validaciones extra por si el usuario se saltó pasos con la nav
+          if (totalItems === 0) {
+            alert("Tu carrito está vacío.");
+            goToStep(1);
+            return;
+          }
+
+          const ref = deliveryReferenceInput.value.trim();
+          const phone = deliveryPhoneInput.value.trim();
+          if (!ref) {
+            alert("Falta la referencia de entrega. Complétala en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (!phone) {
+            alert("Falta el número de teléfono. Complétalo en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (deliveryLat == null || deliveryLng == null) {
+            alert("Falta la ubicación precisa. Complétala en el paso 2.");
+            goToStep(2);
+            return;
+          }
+          if (!selectedPaymentMethod) {
+            alert("Falta seleccionar el método de pago. Hazlo en el paso 3.");
+            goToStep(3);
+            return;
+          }
+
+          const items = Object.keys(cart).map((idStr) => {
+            const id = Number(idStr);
+            const product = products.find((x) => x.id === id);
+            return {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              qty: cart[id],
+              subtotal: product.price * cart[id],
+            };
+          });
+
+          const payload = {
+            event: "order_submitted",
+            total_items: totalItems,
+            total_amount: totalAmount,
+            items,
+            delivery: {
+              lat: deliveryLat,
+              lng: deliveryLng,
+              reference: ref,
+              phone: phone,
+            },
+            payment_method: selectedPaymentMethod,
+            timestamp: Date.now(),
           };
-        });
 
-        const payload = {
-          event: "order_submitted",
-          total_items: items.reduce((acc, i) => acc + i.qty, 0),
-          total_amount: items.reduce((acc, i) => acc + i.subtotal, 0),
-          items,
-          timestamp: Date.now(),
-        };
-
-        tg.sendData(JSON.stringify(payload));
+          tg.sendData(JSON.stringify(payload)); // la miniapp se cierra al enviar
+        }
       });
     }
 
+    // Init
     initProducts();
+    initPaymentOptions();
     renderProducts();
     updateCartSummary();
+    updateStepsNav();
+    updateMainButton();
+    initMap();
   </script>
 </body>
 </html>
