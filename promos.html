@@ -167,16 +167,18 @@
     }
 
     .section{
-      border:1px solid var(--border);
-      border-radius: 12px;
-      overflow:hidden;
-    }
-    .row{
-      padding: 10px 12px;
-      border-top: 1px solid var(--border);
-      background:#fff;
-    }
-    .row:first-child{ border-top:none; }
+  border:1px solid rgba(0,0,0,.06);
+  border-radius: 12px;
+  overflow:hidden;
+  background: rgba(255,255,255,.55); /* deja ver el color del card */
+}
+
+.row{
+  padding: 10px 12px;
+  border-top: 1px solid rgba(0,0,0,.06);
+  background: transparent; /* CLAVE: ya no tapa el card */
+}
+.row:first-child{ border-top:none; }
 
     .label{
       margin:0 0 6px;
@@ -338,10 +340,11 @@
 
     /* === Variantes de color por tarjeta (alta especificidad para que gane) === */
     .card.card-theme-1{ background:#ffffff; border-color:#e5e7eb; }
-    .card.card-theme-2{ background:#f8fafc; border-color:#dbeafe; }
-    .card.card-theme-3{ background:#f9fafb; border-color:#e5e7eb; }
-    .card.card-theme-4{ background:#fefce8; border-color:#fde68a; }
-    .card.card-theme-5{ background:#f0fdf4; border-color:#bbf7d0; }
+.card.card-theme-2{ background:#f1f5ff; border-color:#c7d2fe; } /* azul suave */
+.card.card-theme-3{ background:#f6f7f9; border-color:#e5e7eb; } /* gris suave */
+.card.card-theme-4{ background:#fff7e6; border-color:#fcd34d; } /* ámbar suave */
+.card.card-theme-5{ background:#eefdf3; border-color:#86efac; } /* verde suave */
+
 
     /* Ajustes sutiles por tema para que el contenido no “corte” */
     .card.card-theme-4 .row{ background:#fffdf4; }
