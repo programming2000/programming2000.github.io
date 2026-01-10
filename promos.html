@@ -136,14 +136,17 @@
     }
 
     .badge{
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 12px;
-      background:#fff;
-      white-space:nowrap;
-      color: var(--text);
-    }
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  background:#fff;
+  white-space:nowrap;   /* clave */
+  color: var(--text);
+}
 
     .section{
       border:1px solid var(--border);
@@ -442,7 +445,7 @@
 
     function renderPromoCard(promo, idx){
       const p = promo?.Parametros ?? promo;
-      const validIds = Array.isArray(p.ProductosValidosId) ? p.ProductosValidosId : [];
+      const validIds = Array.isArray(p.ProductosPromocionId) ? p.ProductosPromocionId : [];
       const regaloId = Number(p.ProductoRegaloId);
 
       const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
