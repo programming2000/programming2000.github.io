@@ -91,50 +91,46 @@
 
     .top{
       display:flex;
-      justify-content:space-between;
-      gap: 12px;
+      justify-content:flex-start; /* ya no hay “columna derecha” */
       align-items:flex-start;
+      gap: 12px;
     }
+
     .titleBlock{
       min-width:0;
       display:flex;
       flex-direction:column;
       gap: 6px;
     }
+
+    /* Título destacado */
     .titleBlock .t{
-  margin:0;
-  font-weight: 900;
-  font-size: 15.5px;
-  line-height: 1.25;
-  letter-spacing: .2px;
-  color: var(--text);
-}
-
-    .titleAccent{
-  position:relative;
-  padding-left:10px;
-}
-
-.titleAccent::before{
-  content:"";
-  position:absolute;
-  left:0;
-  top:2px;
-  bottom:2px;
-  width:3px;
-  border-radius:2px;
-  background: var(--primary);
-  opacity:.75;
-}
-
-    .metaLine{
       margin:0;
-      color: var(--muted);
-      font-size: 12.6px;
-      line-height: 1.35;
+      font-weight: 900;
+      font-size: 15.5px;
+      line-height: 1.25;
+      letter-spacing: .2px;
+      color: var(--text);
     }
 
-    /* NUEVO: meta en fila (Vigencia / Inicia desde / Acredita en) */
+    /* Acento al título */
+    .titleAccent{
+      position:relative;
+      padding-left:10px;
+    }
+    .titleAccent::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:2px;
+      bottom:2px;
+      width:3px;
+      border-radius:2px;
+      background: var(--primary);
+      opacity:.75;
+    }
+
+    /* Meta en fila (Vigencia / Inicia desde / Acredita en) */
     .metaRow{
       display:flex;
       flex-wrap:wrap;
@@ -155,18 +151,20 @@
       font-weight: 800;
     }
 
+    /* Badge debajo del título */
     .badge{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 7px 10px;
-  font-size: 12px;
-  background:#fff;
-  white-space:nowrap;   /* clave */
-  color: var(--text);
-}
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      background:#fff;
+      white-space:nowrap;
+      color: var(--text);
+      align-self:flex-start;
+    }
 
     .section{
       border:1px solid var(--border);
@@ -207,6 +205,7 @@
       background:#fff;
       font-weight: 700;
     }
+
     /* Colores por plataforma (suaves) */
     .chip-apueston{ border-color:#fecaca; background:#fff1f2; color:#991b1b; }
     .chip-metabet{ border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
@@ -336,39 +335,22 @@
       font-size: 13px;
       line-height: 1.45;
     }
-    /* === Variantes de color por tarjeta (sobrias) === */
-.card-theme-1{
-  background: #ffffff;
-  border-color:#e5e7eb;
-}
 
-.card-theme-2{
-  background:#f8fafc;           /* gris azulado muy suave */
-  border-color:#dbeafe;
-}
+    /* === Variantes de color por tarjeta (alta especificidad para que gane) === */
+    .card.card-theme-1{ background:#ffffff; border-color:#e5e7eb; }
+    .card.card-theme-2{ background:#f8fafc; border-color:#dbeafe; }
+    .card.card-theme-3{ background:#f9fafb; border-color:#e5e7eb; }
+    .card.card-theme-4{ background:#fefce8; border-color:#fde68a; }
+    .card.card-theme-5{ background:#f0fdf4; border-color:#bbf7d0; }
 
-.card-theme-3{
-  background:#f9fafb;           /* gris neutro */
-  border-color:#e5e7eb;
-}
+    /* Ajustes sutiles por tema para que el contenido no “corte” */
+    .card.card-theme-4 .row{ background:#fffdf4; }
+    .card.card-theme-5 .row{ background:#f7fff9; }
 
-.card-theme-4{
-  background:#fdfefe;           /* blanco cálido */
-  border-color:#fde68a;
-}
-
-.card-theme-5{
-  background:#f8fdf9;           /* verde muy suave */
-  border-color:#bbf7d0;
-}
-
-/* sombra consistente */
-.card[class*="card-theme"]{
-  box-shadow: 0 10px 22px rgba(0,0,0,.06);
-}
-    .card-theme-2 .badge{ background:#eff6ff; }
-.card-theme-4 .badge{ background:#fffbeb; }
-.card-theme-5 .badge{ background:#f0fdf4; }
+    /* Badge suave según tema (opcional pero armónico) */
+    .card.card-theme-2 .badge{ background:#eff6ff; }
+    .card.card-theme-4 .badge{ background:#fffbeb; }
+    .card.card-theme-5 .badge{ background:#f0fdf4; }
 
   </style>
 </head>
@@ -408,7 +390,6 @@
       return "chip-otros";
     }
 
-    // Capitalizar nombres de promos (Title Case)
     function titleCaseEs(str){
       if (!str) return "";
       return String(str)
@@ -497,9 +478,17 @@
       }
     }
 
+    function getValidIds(p){
+      // Robusto: soporta ambos nombres (por si cambiaste en backend)
+      if (Array.isArray(p?.ProductosPromocionId)) return p.ProductosPromocionId;
+      if (Array.isArray(p?.ProductosValidosId)) return p.ProductosValidosId;
+      return [];
+    }
+
     function renderPromoCard(promo, idx){
       const p = promo?.Parametros ?? promo;
-      const validIds = Array.isArray(p.ProductosPromocionId) ? p.ProductosPromocionId : [];
+
+      const validIds = getValidIds(p);
       const regaloId = Number(p.ProductoRegaloId);
 
       const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
@@ -512,24 +501,22 @@
         return `<span class="chip ${cls}">${label}</span>`;
       }).join("");
 
-      const regaloTxtPlataforma = platformName(regaloId);
       const { minTxt, maxTxt } = finalizeTextLines(p);
-
       const promoNombre = titleCaseEs(promo?.Nombre ?? ("Promo #" + (idx + 1)));
 
-     const card = document.createElement("div");
-
-// rota entre 5 temas
-const themeIndex = (idx % 5) + 1;
-card.className = `card card-theme-${themeIndex}`;
+      const card = document.createElement("div");
+      const themeIndex = (idx % 5) + 1;
+      card.className = `card card-theme-${themeIndex}`;
 
       card.innerHTML = `
         <div class="top">
           <div class="titleBlock">
             <p class="t titleAccent">${promoNombre}</p>
 
+            <!-- Badge debajo del nombre (en fila, no columna) -->
             <div class="badge">${giftBadgeText(p, regaloId)}</div>
-            <!-- CAMBIO: meta en FILA -->
+
+            <!-- Meta en fila -->
             <div class="metaRow">
               <div class="metaItem">
                 <span>Vigencia:</span>
@@ -545,12 +532,10 @@ card.className = `card card-theme-${themeIndex}`;
 
               <div class="metaItem">
                 <span>Acredita en:</span>
-                <b>${regaloTxtPlataforma}</b>
+                <b>${platformName(regaloId)}</b>
               </div>
             </div>
           </div>
-
-          
         </div>
 
         <div class="section">
