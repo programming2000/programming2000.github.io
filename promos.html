@@ -102,10 +102,30 @@
       gap: 6px;
     }
     .titleBlock .t{
-      margin:0;
-      font-weight: 850;
-      font-size: 14px;
-    }
+  margin:0;
+  font-weight: 900;
+  font-size: 15.5px;
+  line-height: 1.25;
+  letter-spacing: .2px;
+  color: var(--text);
+}
+
+    .titleAccent{
+  position:relative;
+  padding-left:10px;
+}
+
+.titleAccent::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:2px;
+  bottom:2px;
+  width:3px;
+  border-radius:2px;
+  background: var(--primary);
+  opacity:.75;
+}
 
     .metaLine{
       margin:0;
@@ -316,6 +336,40 @@
       font-size: 13px;
       line-height: 1.45;
     }
+    /* === Variantes de color por tarjeta (sobrias) === */
+.card-theme-1{
+  background: #ffffff;
+  border-color:#e5e7eb;
+}
+
+.card-theme-2{
+  background:#f8fafc;           /* gris azulado muy suave */
+  border-color:#dbeafe;
+}
+
+.card-theme-3{
+  background:#f9fafb;           /* gris neutro */
+  border-color:#e5e7eb;
+}
+
+.card-theme-4{
+  background:#fdfefe;           /* blanco cálido */
+  border-color:#fde68a;
+}
+
+.card-theme-5{
+  background:#f8fdf9;           /* verde muy suave */
+  border-color:#bbf7d0;
+}
+
+/* sombra consistente */
+.card[class*="card-theme"]{
+  box-shadow: 0 10px 22px rgba(0,0,0,.06);
+}
+    .card-theme-2 .badge{ background:#eff6ff; }
+.card-theme-4 .badge{ background:#fffbeb; }
+.card-theme-5 .badge{ background:#f0fdf4; }
+
   </style>
 </head>
 
@@ -463,13 +517,17 @@
 
       const promoNombre = titleCaseEs(promo?.Nombre ?? ("Promo #" + (idx + 1)));
 
-      const card = document.createElement("div");
-      card.className = "card";
+     const card = document.createElement("div");
+
+// rota entre 5 temas
+const themeIndex = (idx % 5) + 1;
+card.className = `card card-theme-${themeIndex}`;
 
       card.innerHTML = `
         <div class="top">
           <div class="titleBlock">
-            <p class="t">${promoNombre}</p>
+            <p class="t titleAccent">${promoNombre}</p>
+
             <div class="badge">${giftBadgeText(p, regaloId)}</div>
             <!-- CAMBIO: meta en FILA -->
             <div class="metaRow">
