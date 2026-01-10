@@ -99,18 +99,40 @@
       min-width:0;
       display:flex;
       flex-direction:column;
-      gap: 4px;
+      gap: 6px;
     }
     .titleBlock .t{
       margin:0;
       font-weight: 850;
       font-size: 14px;
     }
+
     .metaLine{
       margin:0;
       color: var(--muted);
       font-size: 12.6px;
       line-height: 1.35;
+    }
+
+    /* NUEVO: meta en fila (Vigencia / Inicia desde / Acredita en) */
+    .metaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px 12px;
+      margin: 0;
+      align-items:center;
+    }
+    .metaItem{
+      display:inline-flex;
+      gap: 6px;
+      align-items:baseline;
+      color: var(--muted);
+      font-size: 12.6px;
+      line-height: 1.35;
+    }
+    .metaItem b{
+      color: var(--text);
+      font-weight: 800;
     }
 
     .badge{
@@ -307,378 +329,378 @@
     <div id="content"></div>
   </div>
 
- <script>
-  try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
+  <script>
+    try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
 
-  const PLATAFORMAS = {
-    1: "Apueston",
-    2: "Metabet",
-    3: "PPP US",
-    4: "PPP SOL",
-    5: "KKK",
-    6: "PPP BOL",
-    7: "GGG",
-    8: "Tienda"
-  };
+    const PLATAFORMAS = {
+      1: "Apueston",
+      2: "Metabet",
+      3: "PPP US",
+      4: "PPP SOL",
+      5: "KKK",
+      6: "PPP BOL",
+      7: "GGG",
+      8: "Tienda"
+    };
 
-  function platformName(id){ return PLATAFORMAS[id] ?? `Producto ${id}`; }
-  function platformClass(id){
-    if (id === 1) return "chip-apueston";
-    if (id === 2) return "chip-metabet";
-    if (id === 3 || id === 4 || id === 6) return "chip-ppp";
-    return "chip-otros";
-  }
+    function platformName(id){ return PLATAFORMAS[id] ?? `Producto ${id}`; }
+    function platformClass(id){
+      if (id === 1) return "chip-apueston";
+      if (id === 2) return "chip-metabet";
+      if (id === 3 || id === 4 || id === 6) return "chip-ppp";
+      return "chip-otros";
+    }
 
-  // NUEVO: capitalizar nombres de promos (Title Case)
-  function titleCaseEs(str){
-    if (!str) return "";
-    return String(str)
-      .trim()
-      .toLowerCase()
-      // Capitaliza primera letra de cada palabra (unicode-friendly en navegadores modernos)
-      .replace(/(^|\s|[-_./])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
-  }
+    // Capitalizar nombres de promos (Title Case)
+    function titleCaseEs(str){
+      if (!str) return "";
+      return String(str)
+        .trim()
+        .toLowerCase()
+        .replace(/(^|\s|[-_./])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+    }
 
-  function fmtMoney(n){
-    if (n === null || n === undefined || isNaN(Number(n))) return "—";
-    return Number(n).toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  function fmtPct(n){
-    if (n === null || n === undefined || isNaN(Number(n))) return "—";
-    return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
-  }
+    function fmtMoney(n){
+      if (n === null || n === undefined || isNaN(Number(n))) return "—";
+      return Number(n).toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtPct(n){
+      if (n === null || n === undefined || isNaN(Number(n))) return "—";
+      return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
+    }
 
-  function fmtDateAny(d){
-    if (!d) return "—";
-    const dt = new Date(d);
-    if (isNaN(dt.getTime())) return String(d);
-    return dt.toLocaleString("es-BO", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit"
-    });
-  }
+    function fmtDateAny(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleString("es-BO", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
 
-  function parseJsonParam(paramName){
-    const usp = new URLSearchParams(location.search);
-    const raw = usp.get(paramName);
-    if (!raw) return null;
-    try { return JSON.parse(decodeURIComponent(raw)); } catch { return null; }
-  }
+    function parseJsonParam(paramName){
+      const usp = new URLSearchParams(location.search);
+      const raw = usp.get(paramName);
+      if (!raw) return null;
+      try { return JSON.parse(decodeURIComponent(raw)); } catch { return null; }
+    }
 
-  const promociones = parseJsonParam("promos") ?? [];
-  const bloqueadas = parseJsonParam("bloqueadas") ?? [];
-  const bloqueadasSet = new Set((Array.isArray(bloqueadas) ? bloqueadas : []).map(x => Number(x)));
+    const promociones = parseJsonParam("promos") ?? [];
+    const bloqueadas = parseJsonParam("bloqueadas") ?? [];
+    const bloqueadasSet = new Set((Array.isArray(bloqueadas) ? bloqueadas : []).map(x => Number(x)));
 
-  function computeThreshold(valor, esPorcentaje, recarga){
-    const v = Number(valor);
-    const r = Number(recarga);
-    if (isNaN(v)) return null;
+    function computeThreshold(valor, esPorcentaje, recarga){
+      const v = Number(valor);
+      const r = Number(recarga);
+      if (isNaN(v)) return null;
 
-    if (esPorcentaje === true){
+      if (esPorcentaje === true){
+        if (isNaN(r) || r <= 0) return null;
+        return r * (v / 100);
+      }
+      return v;
+    }
+
+    function computeGift(param, recarga){
+      const r = Number(recarga);
       if (isNaN(r) || r <= 0) return null;
-      return r * (v / 100);
+
+      const giftVal = Number(param.MontoRegalo);
+      if (isNaN(giftVal)) return null;
+
+      const regalo = param.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
+      const total = r + regalo;
+      return { regalo, total };
     }
-    return v;
-  }
 
-  function computeGift(param, recarga){
-    const r = Number(recarga);
-    if (isNaN(r) || r <= 0) return null;
-
-    const giftVal = Number(param.MontoRegalo);
-    if (isNaN(giftVal)) return null;
-
-    const regalo = param.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
-    const total = r + regalo;
-    return { regalo, total };
-  }
-
-  // CAMBIO: mostrar también la plataforma donde se acredita el regalo (nombre, no código)
-  function giftBadgeText(param, regaloPlataformaId){
-    const plat = platformName(Number(regaloPlataformaId));
-    const val = param.MontoRegaloEsPorcentaje ? fmtPct(param.MontoRegalo) : fmtMoney(param.MontoRegalo);
-    return `Regalo: <b>${val}</b> · Acredita en <b>${plat}</b>`;
-  }
-
-  function finalizeTextLines(param){
-    // CAMBIO: "Mínimo requerido" -> "Mayor o igual"
-    const minTxt = param.MontoRequeridoFinalizarEsPorcentaje
-      ? `${fmtPct(param.MontoRequeridoFinalizar)} de la recarga`
-      : `${fmtMoney(param.MontoRequeridoFinalizar)} Bs`;
-
-    // CAMBIO: "Máximo permitido" -> "Menor o igual"
-    const maxTxt = param.MontoMinimoFinalizarEsPorcentaje
-      ? `${fmtPct(param.MontoMinimoFinalizar)} de la recarga`
-      : `${fmtMoney(param.MontoMinimoFinalizar)} Bs`;
-
-    return { minTxt, maxTxt };
-  }
-
-  function sendToBot(payload){
-    try {
-      Telegram.WebApp.sendData(payload);
-    } catch {
-      alert("No se pudo enviar al bot. Abre esta MiniApp dentro de Telegram.");
+    function giftBadgeText(param, regaloPlataformaId){
+      const plat = platformName(Number(regaloPlataformaId));
+      const val = param.MontoRegaloEsPorcentaje ? fmtPct(param.MontoRegalo) : fmtMoney(param.MontoRegalo);
+      return `Regalo: <b>${val}</b> · Acredita en <b>${plat}</b>`;
     }
-  }
 
-  function renderPromoCard(promo, idx){
-    const p = promo?.Parametros ?? promo;
-    const validIds = Array.isArray(p.ProductosValidosId) ? p.ProductosValidosId : [];
-    const regaloId = Number(p.ProductoRegaloId);
+    function finalizeTextLines(param){
+      const minTxt = param.MontoRequeridoFinalizarEsPorcentaje
+        ? `${fmtPct(param.MontoRequeridoFinalizar)} de la recarga`
+        : `${fmtMoney(param.MontoRequeridoFinalizar)} Bs`;
 
-    const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
-    const allBlocked = validIds.length > 0 && disponibles.length === 0;
+      const maxTxt = param.MontoMinimoFinalizarEsPorcentaje
+        ? `${fmtPct(param.MontoMinimoFinalizar)} de la recarga`
+        : `${fmtMoney(param.MontoMinimoFinalizar)} Bs`;
 
-    const chipsHtml = validIds.map(id => {
-      const isBlocked = bloqueadasSet.has(Number(id));
-      const cls = isBlocked ? "chip-blocked" : platformClass(id);
-      const label = platformName(id) + (isBlocked ? " (ocupada)" : "");
-      return `<span class="chip ${cls}">${label}</span>`;
-    }).join("");
+      return { minTxt, maxTxt };
+    }
 
-    const regaloTxtPlataforma = platformName(regaloId);
-    const { minTxt, maxTxt } = finalizeTextLines(p);
+    function sendToBot(payload){
+      try {
+        Telegram.WebApp.sendData(payload);
+      } catch {
+        alert("No se pudo enviar al bot. Abre esta MiniApp dentro de Telegram.");
+      }
+    }
 
-    // CAMBIO: nombre capitalizado
-    const promoNombre = titleCaseEs(promo?.Nombre ?? ("Promo #" + (idx + 1)));
+    function renderPromoCard(promo, idx){
+      const p = promo?.Parametros ?? promo;
+      const validIds = Array.isArray(p.ProductosValidosId) ? p.ProductosValidosId : [];
+      const regaloId = Number(p.ProductoRegaloId);
 
-    const card = document.createElement("div");
-    card.className = "card";
+      const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
+      const allBlocked = validIds.length > 0 && disponibles.length === 0;
 
-    card.innerHTML = `
-      <div class="top">
-        <div class="titleBlock">
-          <p class="t">${promoNombre}</p>
+      const chipsHtml = validIds.map(id => {
+        const isBlocked = bloqueadasSet.has(Number(id));
+        const cls = isBlocked ? "chip-blocked" : platformClass(id);
+        const label = platformName(id) + (isBlocked ? " (ocupada)" : "");
+        return `<span class="chip ${cls}">${label}</span>`;
+      }).join("");
 
-          <!-- CAMBIO: quitar Nro de la vista -->
-          <p class="metaLine">
-            <b>Vigencia:</b> ${fmtDateAny(promo?.FechaInicio)} → ${fmtDateAny(promo?.FechaFin)}
-          </p>
+      const regaloTxtPlataforma = platformName(regaloId);
+      const { minTxt, maxTxt } = finalizeTextLines(p);
 
-          <p class="metaLine">
-            Inicia desde <b class="mono">${fmtMoney(p.MontoMinimo)}</b> Bs · Regalo se acredita en <b>${regaloTxtPlataforma}</b>
-          </p>
-        </div>
+      const promoNombre = titleCaseEs(promo?.Nombre ?? ("Promo #" + (idx + 1)));
 
-        <!-- CAMBIO: badge incluye plataforma acreditación -->
-        <div class="badge">${giftBadgeText(p, regaloId)}</div>
-      </div>
+      const card = document.createElement("div");
+      card.className = "card";
 
-      <div class="section">
-        <div class="row">
-          <p class="label">Aplica a:</p>
-          <div class="value">
-            <div class="chipsLine">${chipsHtml || `<span class="chip chip-otros">—</span>`}</div>
-          </div>
-        </div>
+      card.innerHTML = `
+        <div class="top">
+          <div class="titleBlock">
+            <p class="t">${promoNombre}</p>
 
-        <div class="row">
-          <p class="label">Condición para finalizar:</p>
-          <div class="value">
-            <div class="box">
-              <!-- CAMBIO: textos -->
-              <div><b>Mayor o igual:</b> ${minTxt}</div>
-              <div><b>Menor o igual:</b> ${maxTxt}</div>
+            <!-- CAMBIO: meta en FILA -->
+            <div class="metaRow">
+              <div class="metaItem">
+                <span>Vigencia:</span>
+                <b>${fmtDateAny(promo?.FechaInicio)}</b>
+                <span>→</span>
+                <b>${fmtDateAny(promo?.FechaFin)}</b>
+              </div>
+
+              <div class="metaItem">
+                <span>Inicia desde:</span>
+                <b class="mono">${fmtMoney(p.MontoMinimo)} Bs</b>
+              </div>
+
+              <div class="metaItem">
+                <span>Acredita en:</span>
+                <b>${regaloTxtPlataforma}</b>
+              </div>
             </div>
-
-            <!-- CAMBIO: quitar la aclaración de % (el note desaparece) -->
           </div>
+
+          <div class="badge">${giftBadgeText(p, regaloId)}</div>
         </div>
-      </div>
 
-      <div class="actions">
-        <button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>
-          Activar promo
-        </button>
-      </div>
-
-      <div class="warn" id="warn_${idx}">
-        No puedes activar esta promoción porque todas las plataformas aplicables ya tienen una promo activa.
-      </div>
-
-      <div class="panel" id="panel_${idx}">
-        <div class="panelGrid">
-          <div>
-            <div class="note" style="margin-bottom:6px">Monto a cargar</div>
-            <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
+        <div class="section">
+          <div class="row">
+            <p class="label">Aplica a:</p>
+            <div class="value">
+              <div class="chipsLine">${chipsHtml || `<span class="chip chip-otros">—</span>`}</div>
+            </div>
           </div>
-          <div>
-            <div class="note" style="margin-bottom:6px">Plataforma (solo disponibles)</div>
-            <select id="plat_${idx}">
-              ${
-                (disponibles.length ? disponibles : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")
-              }
-            </select>
+
+          <div class="row">
+            <p class="label">Condición para finalizar:</p>
+            <div class="value">
+              <div class="box">
+                <div><b>Mayor o igual:</b> ${minTxt}</div>
+                <div><b>Menor o igual:</b> ${maxTxt}</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="actions" style="justify-content:space-between">
-          <button class="btn btn-ghost" id="cancel_${idx}">Cancelar</button>
-          <button class="btn btn-primary" id="preview_${idx}">Continuar</button>
+        <div class="actions">
+          <button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>
+            Activar promo
+          </button>
         </div>
 
-        <div class="confirmBox" id="confirm_${idx}"></div>
-
-        <div class="actions" id="confirmActions_${idx}" style="display:none">
-          <button class="btn btn-ghost" id="back_${idx}">Atrás</button>
-          <button class="btn btn-primary" id="send_${idx}">Confirmar y enviar</button>
+        <div class="warn" id="warn_${idx}">
+          No puedes activar esta promoción porque todas las plataformas aplicables ya tienen una promo activa.
         </div>
-      </div>
-    `;
 
-    const btnActivate = card.querySelector(`#activate_${idx}`);
-    const panel = card.querySelector(`#panel_${idx}`);
-    const warn = card.querySelector(`#warn_${idx}`);
-    const btnCancel = card.querySelector(`#cancel_${idx}`);
-    const btnPreview = card.querySelector(`#preview_${idx}`);
-    const boxConfirm = card.querySelector(`#confirm_${idx}`);
-    const confirmActions = card.querySelector(`#confirmActions_${idx}`);
-    const btnBack = card.querySelector(`#back_${idx}`);
-    const btnSend = card.querySelector(`#send_${idx}`);
+        <div class="panel" id="panel_${idx}">
+          <div class="panelGrid">
+            <div>
+              <div class="note" style="margin-bottom:6px">Monto a cargar</div>
+              <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
+            </div>
+            <div>
+              <div class="note" style="margin-bottom:6px">Plataforma (solo disponibles)</div>
+              <select id="plat_${idx}">
+                ${
+                  (disponibles.length ? disponibles : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")
+                }
+              </select>
+            </div>
+          </div>
 
-    const inpMonto = card.querySelector(`#monto_${idx}`);
-    const selPlat = card.querySelector(`#plat_${idx}`);
+          <div class="actions" style="justify-content:space-between">
+            <button class="btn btn-ghost" id="cancel_${idx}">Cancelar</button>
+            <button class="btn btn-primary" id="preview_${idx}">Continuar</button>
+          </div>
 
-    function hideConfirm(){
-      boxConfirm.classList.remove("show");
-      boxConfirm.innerHTML = "";
-      confirmActions.style.display = "none";
-    }
+          <div class="confirmBox" id="confirm_${idx}"></div>
 
-    if (allBlocked) warn.classList.add("show");
-
-    btnActivate?.addEventListener("click", () => {
-      if (allBlocked) return;
-      panel.classList.add("show");
-      hideConfirm();
-      inpMonto.focus();
-    });
-
-    btnCancel?.addEventListener("click", () => {
-      panel.classList.remove("show");
-      hideConfirm();
-    });
-
-    btnBack?.addEventListener("click", () => {
-      hideConfirm();
-    });
-
-    btnPreview?.addEventListener("click", () => {
-      const monto = Number(inpMonto.value);
-      if (isNaN(monto) || monto <= 0){
-        boxConfirm.classList.add("show");
-        boxConfirm.innerHTML = `Ingresa un <b>monto válido</b> mayor a 0.`;
-        confirmActions.style.display = "none";
-        return;
-      }
-
-      const minStart = Number(p.MontoMinimo);
-      if (!isNaN(minStart) && monto < minStart){
-        boxConfirm.classList.add("show");
-        boxConfirm.innerHTML = `El monto mínimo para iniciar esta promo es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
-        confirmActions.style.display = "none";
-        return;
-      }
-
-      const platId = Number(selPlat.value);
-      if (!platId || isNaN(platId)){
-        boxConfirm.classList.add("show");
-        boxConfirm.innerHTML = `Selecciona una plataforma válida.`;
-        confirmActions.style.display = "none";
-        return;
-      }
-
-      if (bloqueadasSet.has(platId)){
-        boxConfirm.classList.add("show");
-        boxConfirm.innerHTML = `Esa plataforma ya tiene una promo activa. Elige otra plataforma disponible.`;
-        confirmActions.style.display = "none";
-        return;
-      }
-
-      const platName = platformName(platId);
-
-      const minReq = computeThreshold(p.MontoRequeridoFinalizar, !!p.MontoRequeridoFinalizarEsPorcentaje, monto);
-      const maxAllow = computeThreshold(p.MontoMinimoFinalizar, !!p.MontoMinimoFinalizarEsPorcentaje, monto);
-
-      const g = computeGift(p, monto);
-
-      const minReqLine = (minReq === null) ? `—` : `<b class="mono">${fmtMoney(minReq)}</b> Bs`;
-      const maxAllowLine = (maxAllow === null) ? `—` : `<b class="mono">${fmtMoney(maxAllow)}</b> Bs`;
-
-      const giftLine = g ? `<b class="mono">${fmtMoney(g.regalo)}</b> Bs` : `—`;
-      const totalLine = g ? `<b class="mono">${fmtMoney(g.total)}</b> Bs` : `—`;
-
-      // CAMBIO: quitar Nro de confirmación y usar nombre capitalizado
-      boxConfirm.classList.add("show");
-      boxConfirm.innerHTML = `
-        <b>Confirmación</b><br/>
-        Promo: <b>${promoNombre}</b><br/>
-        Vigencia: <b>${fmtDateAny(promo?.FechaInicio)}</b> → <b>${fmtDateAny(promo?.FechaFin)}</b><br/>
-        Regalo acredita en: <b>${platformName(regaloId)}</b><br/><br/>
-
-        Cargarás <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b>.<br/><br/>
-
-        <b>Regalo:</b> ${giftLine}<br/>
-        <b>Total a cargar:</b> ${totalLine}<br/><br/>
-
-        <b>Para finalizar (calculado con tu recarga):</b><br/>
-        • <b>Mayor o igual:</b> ${minReqLine}<br/>
-        • <b>Menor o igual:</b> ${maxAllowLine}
+          <div class="actions" id="confirmActions_${idx}" style="display:none">
+            <button class="btn btn-ghost" id="back_${idx}">Atrás</button>
+            <button class="btn btn-primary" id="send_${idx}">Confirmar y enviar</button>
+          </div>
+        </div>
       `;
 
-      confirmActions.style.display = "flex";
-    });
+      const btnActivate = card.querySelector(`#activate_${idx}`);
+      const panel = card.querySelector(`#panel_${idx}`);
+      const warn = card.querySelector(`#warn_${idx}`);
+      const btnCancel = card.querySelector(`#cancel_${idx}`);
+      const btnPreview = card.querySelector(`#preview_${idx}`);
+      const boxConfirm = card.querySelector(`#confirm_${idx}`);
+      const confirmActions = card.querySelector(`#confirmActions_${idx}`);
+      const btnBack = card.querySelector(`#back_${idx}`);
+      const btnSend = card.querySelector(`#send_${idx}`);
 
-    btnSend?.addEventListener("click", () => {
-      const monto = Number(inpMonto.value);
-      const platId = Number(selPlat.value);
+      const inpMonto = card.querySelector(`#monto_${idx}`);
+      const selPlat = card.querySelector(`#plat_${idx}`);
 
-      const payload = {
-        event: "promo_activate",
-        timestamp: Date.now(),
-        promoId: promo?.Id ?? null,
-        promoNombre: promo?.Nombre ?? null, // si quieres, puedes enviar el original
-        fechaInicio: promo?.FechaInicio ?? null,
-        fechaFin: promo?.FechaFin ?? null,
-        parametros: promo?.Parametros ?? null,
-        montoRecarga: monto,
-        plataformaRecargaId: platId
-      };
+      function hideConfirm(){
+        boxConfirm.classList.remove("show");
+        boxConfirm.innerHTML = "";
+        confirmActions.style.display = "none";
+      }
 
-      sendToBot(JSON.stringify(payload));
-    });
+      if (allBlocked) warn.classList.add("show");
 
-    return card;
-  }
+      btnActivate?.addEventListener("click", () => {
+        if (allBlocked) return;
+        panel.classList.add("show");
+        hideConfirm();
+        inpMonto.focus();
+      });
 
-  function render(promos){
-    const content = document.getElementById("content");
-    document.getElementById("countPill").textContent = `${promos.length} promo${promos.length===1?"":"s"}`;
+      btnCancel?.addEventListener("click", () => {
+        panel.classList.remove("show");
+        hideConfirm();
+      });
 
-    if (!Array.isArray(promos) || promos.length === 0){
-      content.innerHTML = `
-        <div class="empty">
-          No se recibieron promociones.<br/><br/>
-          Parámetros esperados:<br/>
-          • <b>promos</b> = lista JSON de promociones<br/>
-          • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas<br/><br/>
-          Ejemplo: <span class="mono">?promos=%5B...%5D&amp;bloqueadas=%5B2%2C6%5D</span>
-        </div>
-      `;
-      return;
+      btnBack?.addEventListener("click", () => {
+        hideConfirm();
+      });
+
+      btnPreview?.addEventListener("click", () => {
+        const monto = Number(inpMonto.value);
+        if (isNaN(monto) || monto <= 0){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Ingresa un <b>monto válido</b> mayor a 0.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        const minStart = Number(p.MontoMinimo);
+        if (!isNaN(minStart) && monto < minStart){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `El monto mínimo para iniciar esta promo es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        const platId = Number(selPlat.value);
+        if (!platId || isNaN(platId)){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Selecciona una plataforma válida.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        if (bloqueadasSet.has(platId)){
+          boxConfirm.classList.add("show");
+          boxConfirm.innerHTML = `Esa plataforma ya tiene una promo activa. Elige otra plataforma disponible.`;
+          confirmActions.style.display = "none";
+          return;
+        }
+
+        const platName = platformName(platId);
+
+        const minReq = computeThreshold(p.MontoRequeridoFinalizar, !!p.MontoRequeridoFinalizarEsPorcentaje, monto);
+        const maxAllow = computeThreshold(p.MontoMinimoFinalizar, !!p.MontoMinimoFinalizarEsPorcentaje, monto);
+
+        const g = computeGift(p, monto);
+
+        const minReqLine = (minReq === null) ? `—` : `<b class="mono">${fmtMoney(minReq)}</b> Bs`;
+        const maxAllowLine = (maxAllow === null) ? `—` : `<b class="mono">${fmtMoney(maxAllow)}</b> Bs`;
+
+        const giftLine = g ? `<b class="mono">${fmtMoney(g.regalo)}</b> Bs` : `—`;
+        const totalLine = g ? `<b class="mono">${fmtMoney(g.total)}</b> Bs` : `—`;
+
+        boxConfirm.classList.add("show");
+        boxConfirm.innerHTML = `
+          <b>Confirmación</b><br/>
+          Promo: <b>${promoNombre}</b><br/>
+          Vigencia: <b>${fmtDateAny(promo?.FechaInicio)}</b> → <b>${fmtDateAny(promo?.FechaFin)}</b><br/>
+          Regalo acredita en: <b>${platformName(regaloId)}</b><br/><br/>
+
+          Cargarás <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b>.<br/><br/>
+
+          <b>Regalo:</b> ${giftLine}<br/>
+          <b>Total a cargar:</b> ${totalLine}<br/><br/>
+
+          <b>Para finalizar (calculado con tu recarga):</b><br/>
+          • <b>Mayor o igual:</b> ${minReqLine}<br/>
+          • <b>Menor o igual:</b> ${maxAllowLine}
+        `;
+
+        confirmActions.style.display = "flex";
+      });
+
+      btnSend?.addEventListener("click", () => {
+        const monto = Number(inpMonto.value);
+        const platId = Number(selPlat.value);
+
+        const payload = {
+          event: "promo_activate",
+          timestamp: Date.now(),
+          promoId: promo?.Id ?? null,
+          promoNombre: promo?.Nombre ?? null,
+          fechaInicio: promo?.FechaInicio ?? null,
+          fechaFin: promo?.FechaFin ?? null,
+          parametros: promo?.Parametros ?? null,
+          montoRecarga: monto,
+          plataformaRecargaId: platId
+        };
+
+        sendToBot(JSON.stringify(payload));
+      });
+
+      return card;
     }
 
-    const grid = document.createElement("div");
-    grid.className = "grid";
-    promos.forEach((p, i) => grid.appendChild(renderPromoCard(p, i)));
+    function render(promos){
+      const content = document.getElementById("content");
+      document.getElementById("countPill").textContent = `${promos.length} promo${promos.length===1?"":"s"}`;
 
-    content.innerHTML = "";
-    content.appendChild(grid);
-  }
+      if (!Array.isArray(promos) || promos.length === 0){
+        content.innerHTML = `
+          <div class="empty">
+            No se recibieron promociones.<br/><br/>
+            Parámetros esperados:<br/>
+            • <b>promos</b> = lista JSON de promociones<br/>
+            • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas<br/><br/>
+            Ejemplo: <span class="mono">?promos=%5B...%5D&amp;bloqueadas=%5B2%2C6%5D</span>
+          </div>
+        `;
+        return;
+      }
 
-  render(promociones);
-</script>
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      promos.forEach((p, i) => grid.appendChild(renderPromoCard(p, i)));
 
+      content.innerHTML = "";
+      content.appendChild(grid);
+    }
+
+    render(promociones);
+  </script>
 </body>
 </html>
