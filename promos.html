@@ -707,18 +707,13 @@
         const platId = Number(selPlat.value);
 
         const payload = {
-          event: "promo_activate",
-          timestamp: Date.now(),
-          promoId: promo?.Id ?? null,
-          promoNombre: promo?.Nombre ?? null,
-          fechaInicio: promo?.FechaInicio ?? null,
-          fechaFin: promo?.FechaFin ?? null,
-          parametros: promo?.Parametros ?? null,
-          montoRecarga: monto,
-          plataformaRecargaId: platId
-        };
+  event: "promo_activate",
+  promoId: promo?.Id ?? 0,
+  monto: Number(inpMonto.value) || 0,
+  plataformaId: Number(selPlat.value) || 0
+};
 
-        sendToBot(JSON.stringify(payload));
+sendToBot(JSON.stringify(payload));
       });
 
       return card;
