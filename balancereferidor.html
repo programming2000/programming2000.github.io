@@ -4,72 +4,195 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ganancias</title>
+
 <style>
-  :root{
-    --bg:#0e1116; --card:#151a22; --ink:#e8edf3; --muted:#aab3c2;
-    --ok:#18b26a; --warn:#eab308; --bad:#ef4444; --accent:#4f8cff; --line:#233042;
-  }
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
-  .wrap{max-width:880px;margin:auto;padding:20px;}
-  .header{
-    background:linear-gradient(135deg,#18212c 0%, #10161e 60%, #0e131a 100%);
-    border:1px solid var(--line); border-radius:16px; padding:18px 20px;
-    display:flex;align-items:center;gap:14px; box-shadow:0 8px 24px rgba(0,0,0,.25);
-  }
-  .avatar{width:46px;height:46px;border-radius:12px;background:radial-gradient(120% 120% at 30% 20%, #5daeff 0%, #4f8cff 35%, #1a5fff 70%, #0a2a6b 100%);display:grid;place-items:center;font-weight:700;color:white;box-shadow:0 6px 20px rgba(79,140,255,.35)}
-  .h-title{font-size:18px;margin:0;line-height:1.2}
-  .h-sub{margin:2px 0 0;color:var(--muted);font-size:13px}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#0b1220;color:#b6c3d6;font-size:12px}
-  .tabs{margin-top:12px;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .tab{padding:8px 12px;cursor:pointer;background:#0b1220;color:#9fb5ff;border-right:1px solid var(--line);font-size:13px;user-select:none}
-  .tab:last-child{border-right:none}
-  .tab.active{background:var(--accent);color:#fff}
-  .cards{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
-  .card{grid-column:span 12;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.20);overflow:hidden}
-  .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:15px;letter-spacing:.2px;background:#111722}
-  .pad{padding:14px 16px}
-  .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-  @media(min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)}}
-  .kpi{background:#0f1622;border:1px solid var(--line);border-radius:12px;padding:12px}
-  .kpi .label{color:var(--muted);font-size:12px}
-  .kpi .val{font-weight:700;font-size:18px;margin-top:2px}
-  .kpi.pos .val{color:var(--ok)} .kpi.neg .val{color:var(--bad)}
-  .delta{display:inline-block;margin-left:6px;font-size:12px;padding:2px 6px;border-radius:999px;border:1px solid var(--line);color:#b6c3d6}
-  .delta.up{color:var(--ok)} .delta.down{color:var(--bad)}
-  table{width:100%;border-collapse:separate;border-spacing:0 10px}
-  tbody tr{background:#0f1622}
-  td{padding:10px 12px;vertical-align:middle}
-  td.key{color:var(--muted);width:48%}
-  td.val{font-weight:600}
-  .row{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .val.bad{color:var(--bad)} .val.ok{color:var(--ok)} .val.warn{color:var(--warn)}
-  .badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+:root{
+  --bg:#0c0f14;
+  --card:#141821;
+  --ink:#e5e7eb;
+  --muted:#9aa3b2;
+  --line:#232836;
+
+  --accent:#6b7280;   /* único acento sobrio */
+  --ok:#22c55e;
+  --bad:#ef4444;
+  --warn:#f59e0b;
+}
+
+html,body{
+  margin:0;height:100%;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;
+}
+
+.wrap{max-width:880px;margin:auto;padding:20px}
+
+.header{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  display:flex;
+  gap:14px;
+}
+
+.avatar{
+  width:44px;height:44px;
+  border-radius:10px;
+  background:#1f2432;
+  display:grid;
+  place-items:center;
+  font-weight:600;
+  color:#d1d5db;
+}
+
+.h-title{margin:0;font-size:17px}
+.h-sub{margin:4px 0 0;font-size:13px;color:var(--muted)}
+
+.tabs{
+  margin-top:10px;
+  display:flex;
+  gap:14px;
+}
+
+.tab{
+  font-size:13px;
+  color:var(--muted);
+  cursor:pointer;
+  padding-bottom:4px;
+  border-bottom:2px solid transparent;
+}
+
+.tab.active{
+  color:var(--ink);
+  border-color:var(--accent);
+}
+
+.pill{
+  font-size:12px;
+  color:var(--muted);
+  border:1px solid var(--line);
+  padding:6px 10px;
+  border-radius:999px;
+}
+
+.cards{
+  display:grid;
+  gap:16px;
+  margin-top:16px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+
+.card h3{
+  margin:0;
+  padding:14px 16px;
+  font-size:14px;
+  border-bottom:1px solid var(--line);
+  color:#d1d5db;
+}
+
+.pad{padding:14px 16px}
+
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+@media(min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)}}
+
+.kpi{
+  background:#10141c;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px;
+}
+
+.kpi .label{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.kpi .val{
+  font-size:17px;
+  font-weight:600;
+  margin-top:4px;
+}
+
+.kpi.pos .val{color:var(--ok)}
+.kpi.neg .val{color:var(--bad)}
+
+table{width:100%;border-collapse:separate;border-spacing:0 10px}
+
+.row{
+  background:#10141c;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+
+td{padding:10px 12px}
+
+td.key{
+  color:var(--muted);
+  width:55%;
+}
+
+td.val{
+  font-weight:600;
+}
+
+.val.ok{color:var(--ok)}
+.val.bad{color:var(--bad)}
+.val.warn{color:var(--warn)}
+
+.badge{
+  font-size:11px;
+  padding:2px 6px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:var(--muted);
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
+
   <section class="header">
     <div class="avatar" id="avatarTxt">CL</div>
     <div>
-      <h1 class="h-title">Ganancias hasta la fecha</h1>
-      <p class="h-sub"><span id="personaName">—</span> · <span id="rangoFechas">—</span></p>
-      <div class="tabs" role="tablist" aria-label="Período">
-        <div class="tab" id="tab-curr" role="tab" aria-selected="true">Periodo actual</div>
-        <div class="tab" id="tab-prev" role="tab" aria-selected="false">Mes anterior</div>
+      <h1 class="h-title">Ganancias</h1>
+      <p class="h-sub">
+        <span id="personaName">—</span> ·
+        <span id="rangoFechas">—</span>
+      </p>
+
+      <div class="tabs">
+        <div class="tab active" id="tab-curr">Periodo actual</div>
+        <div class="tab" id="tab-prev">Mes anterior</div>
       </div>
     </div>
-    <div style="margin-left:auto"><span class="pill"><span id="rangoTxt">Rango: —</span></span></div>
+
+    <div style="margin-left:auto">
+      <span class="pill" id="rangoTxt">Rango: —</span>
+    </div>
   </section>
 
   <section class="cards">
+
     <article class="card">
       <h3>Resumen</h3>
       <div class="pad">
         <div class="kpis">
-          <div class="kpi"><div class="label">Cargas</div><div class="val" id="kpiCargas">—</div></div>
-          <div class="kpi"><div class="label">Retiros</div><div class="val" id="kpiRetiros">—</div></div>
-          <div class="kpi" id="kpiBalanceBox"><div class="label">Balance (Cargas − Retiros)</div><div class="val" id="kpiBalance">—</div></div>
-          <div class="kpi"><div class="label">Comisión de Rango</div><div class="val" id="kpiComi">—</div></div>
+          <div class="kpi"><div class="label">Cargas</div><div class="val" id="kpiCargas"></div></div>
+          <div class="kpi"><div class="label">Retiros</div><div class="val" id="kpiRetiros"></div></div>
+          <div class="kpi" id="kpiBalanceBox"><div class="label">Balance</div><div class="val" id="kpiBalance"></div></div>
+          <div class="kpi"><div class="label">Comisión</div><div class="val" id="kpiComi"></div></div>
         </div>
       </div>
     </article>
@@ -82,6 +205,7 @@
         </table>
       </div>
     </article>
+
   </section>
 </div>
 
@@ -199,7 +323,8 @@
   }
 
   // Renderizado
-  const render = (data, compare=null, showDeltas=true)=>{
+  // IMPORTANTE: showDeltas = false en ambas vistas para que "Periodo actual" NO muestre nada del mes anterior.
+  const render = (data, compare=null, showDeltas=false)=>{
     resetUI();
 
     // Header
@@ -225,13 +350,14 @@
       }
     };
 
+    // KPIs SIN comparación (compare = null) => no aparecen deltas.
     setWithDelta(kpiCargas, data.cargas, compare ? compare.cargas : null);
     setWithDelta(kpiRetiros, data.retiros, compare ? compare.retiros : null);
     kpiBalanceBox.classList.add((data.balance||0)>=0 ? 'pos':'neg');
     setWithDelta(kpiBalance, data.balance, compare ? compare.balance : null);
     kpiComi.textContent = `${fmt.format(data.rangoComision||0)}%`;
 
-    // Tabla
+    // Tabla (solo datos del periodo seleccionado)
     const rows = [
       {k:'Balance base', v:data.balance, cls:(data.balance||0)>=0?'ok':'bad', hint:'(Cargas − Retiros)'},
       {k:`Comisión por rango (${fmt.format(data.rangoComision||0)}%)*`, v:data.pagoSinDescuento, cls:(data.pagoSinDescuento||0)>=0?'ok':'bad'},
@@ -239,31 +365,37 @@
       {k:'Descuento', v:-Math.abs(data.descuento||0), cls:'warn'},
       {k:'Pago neto (Subtotal)', v:data.subTotal, cls:(data.subTotal||0)>=0?'ok':'bad', strong:true}
     ];
+
     for(const r of rows){
       const tr = document.createElement('tr'); tr.className='row';
-      const tdK = document.createElement('td'); tdK.className='key'; tdK.innerHTML = r.k + (r.hint?` <span class="badge">${r.hint}</span>`:'');
-      const tdV = document.createElement('td'); tdV.className='val'; tdV.textContent = `Bs ${fmt.format(r.v||0)}`;
+      const tdK = document.createElement('td'); tdK.className='key';
+      tdK.innerHTML = r.k + (r.hint?` <span class="badge">${r.hint}</span>`:'');
+      const tdV = document.createElement('td'); tdV.className='val';
+      tdV.textContent = `Bs ${fmt.format(r.v||0)}`;
       if(r.cls) tdV.classList.add(r.cls);
       if(r.strong){ tdV.style.fontSize='20px'; tdV.style.fontWeight='800'; }
-      tr.appendChild(tdK); tr.appendChild(tdV); tbody.appendChild(tr);
+      tr.appendChild(tdK); tr.appendChild(tdV);
+      tbody.appendChild(tr);
     }
   };
 
   // Vista inicial (?view=prev permite abrir directo el mes anterior)
   const initialView = (getS('view','curr').toLowerCase()==='prev') ? 'prev' : 'curr';
   setTabState(initialView);
-  if(initialView==='curr') render(dataCurr, dataPrev, true);
-  else render(dataPrev, dataCurr, false); // sin deltas en “Mes anterior” para evitar confusiones
+
+  // IMPORTANTE: compare=null y showDeltas=false para que no se vea nada del mes anterior en el periodo actual.
+  if(initialView==='curr') render(dataCurr, null, false);
+  else render(dataPrev, null, false);
 
   // Eventos de pestañas
   tabCurr.addEventListener('click', ()=>{
     setTabState('curr');
-    render(dataCurr, dataPrev, true);
+    render(dataCurr, null, false); // NO compare
     history.replaceState(null,'',updateQuery('view','curr'));
   });
   tabPrev.addEventListener('click', ()=>{
     setTabState('prev');
-    render(dataPrev, dataCurr, false);
+    render(dataPrev, null, false); // NO compare
     history.replaceState(null,'',updateQuery('view','prev'));
   });
 
