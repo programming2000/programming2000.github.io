@@ -91,7 +91,7 @@
 
     .top{
       display:flex;
-      justify-content:flex-start; /* ya no hay “columna derecha” */
+      justify-content:flex-start;
       align-items:flex-start;
       gap: 12px;
     }
@@ -103,7 +103,6 @@
       gap: 6px;
     }
 
-    /* Título destacado */
     .titleBlock .t{
       margin:0;
       font-weight: 900;
@@ -113,7 +112,6 @@
       color: var(--text);
     }
 
-    /* Acento al título */
     .titleAccent{
       position:relative;
       padding-left:10px;
@@ -130,7 +128,6 @@
       opacity:.75;
     }
 
-    /* Meta en fila (Vigencia / Inicia desde / Acredita en) */
     .metaRow{
       display:flex;
       flex-wrap:wrap;
@@ -151,7 +148,6 @@
       font-weight: 800;
     }
 
-    /* Badge debajo del título */
     .badge{
       display:inline-flex;
       align-items:center;
@@ -167,18 +163,18 @@
     }
 
     .section{
-  border:1px solid rgba(0,0,0,.06);
-  border-radius: 12px;
-  overflow:hidden;
-  background: rgba(255,255,255,.55); /* deja ver el color del card */
-}
+      border:1px solid rgba(0,0,0,.06);
+      border-radius: 12px;
+      overflow:hidden;
+      background: rgba(255,255,255,.55);
+    }
 
-.row{
-  padding: 10px 12px;
-  border-top: 1px solid rgba(0,0,0,.06);
-  background: transparent; /* CLAVE: ya no tapa el card */
-}
-.row:first-child{ border-top:none; }
+    .row{
+      padding: 10px 12px;
+      border-top: 1px solid rgba(0,0,0,.06);
+      background: transparent;
+    }
+    .row:first-child{ border-top:none; }
 
     .label{
       margin:0 0 6px;
@@ -208,7 +204,6 @@
       font-weight: 700;
     }
 
-    /* Colores por plataforma (suaves) */
     .chip-apueston{ border-color:#fecaca; background:#fff1f2; color:#991b1b; }
     .chip-metabet{ border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
     .chip-ppp{ border-color:#bbf7d0; background:#f0fdf4; color:#166534; }
@@ -236,6 +231,7 @@
       display:flex;
       gap: 10px;
       justify-content:flex-end;
+      flex-wrap:wrap;
     }
     .btn{
       border:0;
@@ -262,7 +258,14 @@
       color: var(--text);
     }
 
-    /* Panel activar promo */
+    /* Botón finalizar (sobrio, pero claramente distinto) */
+    .btn-danger{
+      background:#111827;
+      color:#fff;
+    }
+    .btn-danger:hover{ background:#0b1220; }
+    .btn-danger:active{ transform: translateY(1px); }
+
     .panel{
       display:none;
       border: 1px solid var(--border);
@@ -338,23 +341,18 @@
       line-height: 1.45;
     }
 
-    /* === Variantes de color por tarjeta (alta especificidad para que gane) === */
     .card.card-theme-1{ background:#ffffff; border-color:#e5e7eb; }
-.card.card-theme-2{ background:#f1f5ff; border-color:#c7d2fe; } /* azul suave */
-.card.card-theme-3{ background:#f6f7f9; border-color:#e5e7eb; } /* gris suave */
-.card.card-theme-4{ background:#fff7e6; border-color:#fcd34d; } /* ámbar suave */
-.card.card-theme-5{ background:#eefdf3; border-color:#86efac; } /* verde suave */
+    .card.card-theme-2{ background:#f1f5ff; border-color:#c7d2fe; }
+    .card.card-theme-3{ background:#f6f7f9; border-color:#e5e7eb; }
+    .card.card-theme-4{ background:#fff7e6; border-color:#fcd34d; }
+    .card.card-theme-5{ background:#eefdf3; border-color:#86efac; }
 
-
-    /* Ajustes sutiles por tema para que el contenido no “corte” */
     .card.card-theme-4 .row{ background:#fffdf4; }
     .card.card-theme-5 .row{ background:#f7fff9; }
 
-    /* Badge suave según tema (opcional pero armónico) */
     .card.card-theme-2 .badge{ background:#eff6ff; }
     .card.card-theme-4 .badge{ background:#fffbeb; }
     .card.card-theme-5 .badge{ background:#f0fdf4; }
-
   </style>
 </head>
 
@@ -363,7 +361,7 @@
     <div class="header">
       <div>
         <h1>Promociones disponibles</h1>
-        <p>Activa una promo por plataforma. Si una plataforma ya tiene promo activa, quedará bloqueada.</p>
+        <p>Activa una promo por plataforma. Si una plataforma ya tiene promo activa, quedará bloqueada. Si tú ya tomaste una promo, podrás finalizarla.</p>
       </div>
       <div class="count" id="countPill">0 promos</div>
     </div>
@@ -431,6 +429,10 @@
     const bloqueadas = parseJsonParam("bloqueadas") ?? [];
     const bloqueadasSet = new Set((Array.isArray(bloqueadas) ? bloqueadas : []).map(x => Number(x)));
 
+    /* NUEVO: promos activas del usuario (lista de promoId) */
+    const promosActivas = parseJsonParam("promosActivas") ?? [];
+    const promosActivasSet = new Set((Array.isArray(promosActivas) ? promosActivas : []).map(x => Number(x)));
+
     function computeThreshold(valor, esPorcentaje, recarga){
       const v = Number(valor);
       const r = Number(recarga);
@@ -482,7 +484,6 @@
     }
 
     function getValidIds(p){
-      // Robusto: soporta ambos nombres (por si cambiaste en backend)
       if (Array.isArray(p?.ProductosPromocionId)) return p.ProductosPromocionId;
       if (Array.isArray(p?.ProductosValidosId)) return p.ProductosValidosId;
       return [];
@@ -490,6 +491,9 @@
 
     function renderPromoCard(promo, idx){
       const p = promo?.Parametros ?? promo;
+
+      const promoId = Number(promo?.Id ?? 0);
+      const isTakenByUser = promosActivasSet.has(promoId);
 
       const validIds = getValidIds(p);
       const regaloId = Number(p.ProductoRegaloId);
@@ -516,10 +520,8 @@
           <div class="titleBlock">
             <p class="t titleAccent">${promoNombre}</p>
 
-            <!-- Badge debajo del nombre (en fila, no columna) -->
             <div class="badge">${giftBadgeText(p, regaloId)}</div>
 
-            <!-- Meta en fila -->
             <div class="metaRow">
               <div class="metaItem">
                 <span>Vigencia:</span>
@@ -561,9 +563,11 @@
         </div>
 
         <div class="actions">
-          <button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>
-            Activar promo
-          </button>
+          ${
+            isTakenByUser
+              ? `<button class="btn btn-danger" id="finish_${idx}">Finalizar promo</button>`
+              : `<button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>Activar promo</button>`
+          }
         </div>
 
         <div class="warn" id="warn_${idx}">
@@ -600,9 +604,12 @@
         </div>
       `;
 
-      const btnActivate = card.querySelector(`#activate_${idx}`);
       const panel = card.querySelector(`#panel_${idx}`);
       const warn = card.querySelector(`#warn_${idx}`);
+
+      const btnActivate = card.querySelector(`#activate_${idx}`);
+      const btnFinish = card.querySelector(`#finish_${idx}`);
+
       const btnCancel = card.querySelector(`#cancel_${idx}`);
       const btnPreview = card.querySelector(`#preview_${idx}`);
       const boxConfirm = card.querySelector(`#confirm_${idx}`);
@@ -619,7 +626,16 @@
         confirmActions.style.display = "none";
       }
 
-      if (allBlocked) warn.classList.add("show");
+      if (!isTakenByUser && allBlocked) warn.classList.add("show");
+
+      /* NUEVO: Finalizar promo */
+      btnFinish?.addEventListener("click", () => {
+        const payload = {
+          event: "promo_finish",
+          promoId: promoId
+        };
+        sendToBot(JSON.stringify(payload));
+      });
 
       btnActivate?.addEventListener("click", () => {
         if (allBlocked) return;
@@ -703,17 +719,13 @@
       });
 
       btnSend?.addEventListener("click", () => {
-        const monto = Number(inpMonto.value);
-        const platId = Number(selPlat.value);
-
         const payload = {
-  event: "promo_activate",
-  promoId: promo?.Id ?? 0,
-  monto: Number(inpMonto.value) || 0,
-  plataformaId: Number(selPlat.value) || 0
-};
-
-sendToBot(JSON.stringify(payload));
+          event: "promo_activate",
+          promoId: promoId,
+          monto: Number(inpMonto.value) || 0,
+          plataformaId: Number(selPlat.value) || 0
+        };
+        sendToBot(JSON.stringify(payload));
       });
 
       return card;
@@ -729,8 +741,9 @@ sendToBot(JSON.stringify(payload));
             No se recibieron promociones.<br/><br/>
             Parámetros esperados:<br/>
             • <b>promos</b> = lista JSON de promociones<br/>
-            • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas<br/><br/>
-            Ejemplo: <span class="mono">?promos=%5B...%5D&amp;bloqueadas=%5B2%2C6%5D</span>
+            • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas<br/>
+            • <b>promosActivas</b> = lista JSON de ids de promos activas del usuario<br/><br/>
+            Ejemplo: <span class="mono">?promos=%5B...%5D&amp;bloqueadas=%5B2%2C6%5D&amp;promosActivas=%5B12%5D</span>
           </div>
         `;
         return;
