@@ -13,10 +13,8 @@
       --text:#1f2937;
       --muted:#6b7280;
       --border:#e5e7eb;
-
       --primary:#2563eb;
       --primary2:#1d4ed8;
-
       --shadow:0 10px 22px rgba(0,0,0,.08);
       --radius:16px;
     }
@@ -303,9 +301,7 @@
   <script>
     try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } catch {}
 
-    // IMPORTANTE:
-    // La miniapp espera que el backend ya haya convertido Id->Nro (contrato miniapp).
-    // Así, los ids de plataforma aquí son Nro.
+    // IDs de plataforma (Nro), ya mapeados por backend
     const PLATAFORMAS = {
       1: "Apueston",
       2: "Metabet",
@@ -315,7 +311,7 @@
       6: "PPP BOL",
       7: "GGG",
       8: "Tienda",
-      9: "Imperial" // NUEVO: después de Tienda
+      9: "Imperial"
     };
 
     const PROMO_TIPO = { RECARGA: 1, REGISTRO: 2 };
@@ -325,7 +321,6 @@
       if (id === 1) return "chip-apueston";
       if (id === 2) return "chip-metabet";
       if (id === 3 || id === 4 || id === 6) return "chip-ppp";
-      if (id === 9) return "chip-otros";
       return "chip-otros";
     }
 
@@ -365,6 +360,8 @@
     const promosActivasSet = new Set((Array.isArray(promosActivas) ? promosActivas : []).map(x => Number(x)));
 
     // promosActivasDet: detalle (Recarga y Registro)
+    // OPCIONAL extra: si backend lo envía, aquí también pueden venir los datos de ClientePromocion:
+    // { baseMonto: 10, productoPromocionId: 9 } para registro, etc.
     const promosActivasDet = parseJsonParam("promosActivasDet") ?? [];
     const promosActivasDetArr = Array.isArray(promosActivasDet) ? promosActivasDet : [];
 
@@ -382,16 +379,23 @@
     }
 
     function normalizePromo(obj){
-      // Acepta Parametros o ParametrosModel, PascalCase o camelCase
       const promo = obj ?? {};
       const rawParams = pick(promo, "Parametros", "parametros", "ParametrosModel", "parametrosModel") ?? promo;
 
+      // "ClientePromocion" opcional para promos activas (muy recomendado para cálculos exactos)
+      // Espera algo como:
+      //   Cliente = { ... }
+      //   ClientePromoParametros = { monto: 10, productoPromocionId: 9, type:2 }
+      // o:
+      //   BaseMonto = 10, ProductoPromocionId = 9 (ya "Nro")
+      const rawClienteParams =
+        pick(promo, "ClientePromocion", "clientePromocion", "ClientePromo", "clientePromo", "ClientePromoParametros", "clientePromoParametros") ??
+        pick(promo, "ClienteParametros", "clienteParametros");
+
       const p = {
         Type: Number(pick(rawParams, "Type", "type") ?? 0),
-
         ProductoRegaloId: Number(pick(rawParams, "ProductoRegaloId", "productoRegaloId") ?? 0),
         ProductosPromocionId: pick(rawParams, "ProductosPromocionId", "productosPromocionId"),
-
         MontoMinimo: Number(pick(rawParams, "MontoMinimo", "montoMinimo") ?? 0),
 
         MontoRegalo: Number(pick(rawParams, "MontoRegalo", "montoRegalo") ?? 0),
@@ -402,9 +406,15 @@
 
         MontoRequeridoFinalizar: Number(pick(rawParams, "MontoRequeridoFinalizar", "montoRequeridoFinalizar") ?? 0),
         MontoRequeridoFinalizarEsPorcentaje: !!pick(rawParams, "MontoRequeridoFinalizarEsPorcentaje", "montoRequeridoFinalizarEsPorcentaje"),
+
+        // Campos opcionales de instancia (ClientePromocion):
+        // Para Registro: baseMonto = bono real abonado (monto)
+        // Para Recarga: baseMonto = total abonado al usuario (recarga + bono) si aplica
+        BaseMonto: Number(pick(rawClienteParams, "BaseMonto", "baseMonto", "monto", "Monto") ?? NaN),
+        ProductoPromocionId: Number(pick(rawClienteParams, "ProductoPromocionId", "productoPromocionId") ?? NaN),
+        RecargaMonto: Number(pick(rawClienteParams, "RecargaMonto", "recargaMonto") ?? NaN)
       };
 
-      // ProductosPromocionId debe ser array si existe
       const ids = p.ProductosPromocionId;
       if (!Array.isArray(ids)) p.ProductosPromocionId = [];
 
@@ -412,9 +422,68 @@
     }
 
     function getValidIds(p){
-      return Array.isArray(p?.ProductosPromocionId)
-        ? p.ProductosPromocionId.map(Number)
-        : [];
+      return Array.isArray(p?.ProductosPromocionId) ? p.ProductosPromocionId.map(Number) : [];
+    }
+
+    function computeGiftAmount(param, recargaMonto){
+      const r = Number(recargaMonto);
+      const giftVal = Number(param.MontoRegalo);
+      if (isNaN(giftVal)) return null;
+
+      if (param.MontoRegaloEsPorcentaje === true){
+        if (isNaN(r) || r <= 0) return null;
+        return r * (giftVal / 100);
+      }
+      return giftVal;
+    }
+
+    // Base para condiciones:
+    // - Registro: base = bono real abonado (ClientePromocion.monto)
+    // - Recarga: base = recarga + bono (total abonado), porque tus reglas indican que el usuario recibe recarga+bono
+    //   y tú quieres que el % se calcule sobre ese total.
+    function getBaseForFinalize(param, isRegistro, recargaMonto, baseMontoFromServer){
+      // Si backend te manda BaseMonto (ideal), úsalo primero.
+      const baseSrv = Number(baseMontoFromServer);
+      if (!isNaN(baseSrv) && baseSrv >= 0) return baseSrv;
+
+      if (isRegistro){
+        // Fallback: si no vino, usamos MontoRegalo como aproximación (regla) aunque no siempre es exacta
+        return Number(param.MontoRegalo) || 0;
+      }
+
+      // Recarga: necesitamos monto de recarga + bono
+      const r = Number(recargaMonto);
+      const gift = computeGiftAmount(param, r) ?? 0;
+      if (!isNaN(r) && r > 0) return r + gift;
+
+      // si no hay recargaMonto, al menos no romper:
+      return 0;
+    }
+
+    function computeThresholdAbs(valor, esPorcentaje, base){
+      const v = Number(valor);
+      const b = Number(base);
+
+      if (isNaN(v)) return null;
+
+      if (esPorcentaje === true){
+        if (isNaN(b) || b < 0) return null;
+        return b * (v / 100);
+      }
+      return v;
+    }
+
+    function finalizeLinesAbs(param, isRegistro, recargaMonto, baseMontoFromServer){
+      const base = getBaseForFinalize(param, isRegistro, recargaMonto, baseMontoFromServer);
+
+      const minAbs = computeThresholdAbs(param.MontoRequeridoFinalizar, !!param.MontoRequeridoFinalizarEsPorcentaje, base);
+      const maxAbs = computeThresholdAbs(param.MontoMinimoFinalizar, !!param.MontoMinimoFinalizarEsPorcentaje, base);
+
+      return {
+        base,
+        minAbs,
+        maxAbs
+      };
     }
 
     function giftBadgeText(param){
@@ -424,32 +493,14 @@
       return `Regalo: <b>${val}</b> · Acredita en <b>${plat}</b>`;
     }
 
-    // Mantener el texto anterior para finalizar, con un ajuste de redacción según tipo
-    function finalizeTextLines(param, isRegistro){
-      const baseTxt = isRegistro ? "del bono" : "de la recarga";
-
-      const minTxt = param.MontoRequeridoFinalizarEsPorcentaje
-        ? `${fmtPct(param.MontoRequeridoFinalizar)} ${baseTxt}`
-        : `${fmtMoney(param.MontoRequeridoFinalizar)} Bs`;
-
-      const maxTxt = param.MontoMinimoFinalizarEsPorcentaje
-        ? `${fmtPct(param.MontoMinimoFinalizar)} ${baseTxt}`
-        : `${fmtMoney(param.MontoMinimoFinalizar)} Bs`;
-
-      return { minTxt, maxTxt };
-    }
-
     function mergePromosForUserView(){
-      // Unir activables + detalle de activas
       const byId = new Map();
-
       const listA = Array.isArray(promociones) ? promociones : [];
       const listB = Array.isArray(promosActivasDetArr) ? promosActivasDetArr : [];
 
       for (const item of [...listA, ...listB]){
         const id = Number(item?.Id ?? item?.id ?? 0);
         if (!id) continue;
-
         if (!byId.has(id)) byId.set(id, item);
         else {
           const prev = byId.get(id);
@@ -458,7 +509,6 @@
           if (!prevHas && curHas) byId.set(id, item);
         }
       }
-
       return Array.from(byId.values());
     }
 
@@ -474,12 +524,9 @@
 
       const isTakenByUser = promosActivasSet.has(promoId);
 
-      // Registro: solo finalizar (si está activa debe venir en promosActivasDet)
-      // Recarga: activar si no tomada; finalizar si ya tomada
       const showFinish = isRegistro ? true : isTakenByUser;
       const showActivate = isRecarga && !isTakenByUser;
 
-      // Recarga: plataformas aplicables
       const validIds = showActivate ? getValidIds(p) : [];
       const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
       const allBlocked = validIds.length > 0 && disponibles.length === 0;
@@ -491,12 +538,51 @@
         return `<span class="chip ${cls}">${label}</span>`;
       }).join("");
 
-      const { minTxt, maxTxt } = finalizeTextLines(p, isRegistro);
-
       const regaloId = Number(p.ProductoRegaloId || 0);
+
+      // Para Registro:
+      // - baseMonto ideal viene de ClientePromocion.Parametros.monto (abonado real)
+      // - productoPromocionId ideal viene de ClientePromocion.Parametros.productoPromocionId (donde se abonó)
+      const baseMontoRegistro = !isNaN(p.BaseMonto) ? p.BaseMonto : NaN;
+      const productoPromocionId = !isNaN(p.ProductoPromocionId) ? p.ProductoPromocionId : NaN;
 
       const card = document.createElement("div");
       card.className = "card";
+
+      // Texto de finalización: en vez de "200% de la recarga", mostramos Bs calculado con la base.
+      // - Registro: base = bono abonado
+      // - Recarga: en preview usaremos base = recarga + bono; aquí sin monto recarga no se puede fijar Bs final,
+      //   pero para el usuario es mejor mostrar regla y decir que el cálculo se verá al elegir monto.
+      let finalizeBlockHtml = "";
+      if (isRegistro){
+        const { base, minAbs, maxAbs } = finalizeLinesAbs(p, true, NaN, baseMontoRegistro);
+        finalizeBlockHtml = `
+          <div class="box">
+            <div><b>Mayor o igual:</b> <b class="mono">${(minAbs === null ? "—" : fmtMoney(minAbs))} Bs</b></div>
+            <div><b>Menor o igual:</b> <b class="mono">${(maxAbs === null ? "—" : fmtMoney(maxAbs))} Bs</b></div>
+            <div class="note" style="margin-top:4px">Cálculo basado en el bono abonado: <b class="mono">${fmtMoney(base)} Bs</b></div>
+          </div>
+        `;
+      } else {
+        // Recarga: mostramos la regla, y en la confirmación mostramos Bs exacto (base = recarga + bono)
+        const minRule = p.MontoRequeridoFinalizarEsPorcentaje ? `${fmtPct(p.MontoRequeridoFinalizar)} del total abonado` : `${fmtMoney(p.MontoRequeridoFinalizar)} Bs`;
+        const maxRule = p.MontoMinimoFinalizarEsPorcentaje ? `${fmtPct(p.MontoMinimoFinalizar)} del total abonado` : `${fmtMoney(p.MontoMinimoFinalizar)} Bs`;
+
+        finalizeBlockHtml = `
+          <div class="box">
+            <div><b>Mayor o igual:</b> ${minRule}</div>
+            <div><b>Menor o igual:</b> ${maxRule}</div>
+          </div>
+        `;
+      }
+
+      const acreditaEnRegistro = (!isNaN(productoPromocionId) && productoPromocionId > 0)
+        ? platformName(productoPromocionId)
+        : (regaloId > 0 ? platformName(regaloId) : "—");
+
+      const bonoMostrado = isRegistro
+        ? (!isNaN(baseMontoRegistro) ? baseMontoRegistro : (Number(p.MontoRegalo) || 0))
+        : null;
 
       card.innerHTML = `
         <div class="top">
@@ -510,11 +596,12 @@
             <div class="metaRow">
               <div class="metaItem">
                 <span>Acredita en:</span>
-                <b>${regaloId > 0 ? platformName(regaloId) : "—"}</b>
+                <b>${acreditaEnRegistro}</b>
               </div>
+
               ${
                 isRegistro
-                  ? `<div class="metaItem"><span>Bono abonado:</span><b class="mono">${fmtMoney(p.MontoRegalo)} Bs</b></div>`
+                  ? `<div class="metaItem"><span>Bono abonado:</span><b class="mono">${fmtMoney(bonoMostrado)} Bs</b></div>`
                   : `<div class="metaItem"><span>Monto mínimo:</span><b class="mono">${fmtMoney(p.MontoMinimo)} Bs</b></div>`
               }
             </div>
@@ -537,12 +624,7 @@
 
           <div class="row">
             <p class="label">Condición para finalizar:</p>
-            <div class="value">
-              <div class="box">
-                <div><b>Mayor o igual:</b> ${minTxt}</div>
-                <div><b>Menor o igual:</b> ${maxTxt}</div>
-              </div>
-            </div>
+            <div class="value">${finalizeBlockHtml}</div>
           </div>
         </div>
 
@@ -598,7 +680,6 @@
         sendToBot(JSON.stringify(payload));
       });
 
-      // Si no se activa, no hay panel
       if (!showActivate) return card;
 
       const panel = card.querySelector(`#panel_${idx}`);
@@ -638,8 +719,8 @@
       btnBack?.addEventListener("click", () => hideConfirm());
 
       btnPreview?.addEventListener("click", () => {
-        const monto = Number(inpMonto.value);
-        if (isNaN(monto) || monto <= 0){
+        const recarga = Number(inpMonto.value);
+        if (isNaN(recarga) || recarga <= 0){
           boxConfirm.classList.add("show");
           boxConfirm.innerHTML = `Ingresa un <b>monto válido</b> mayor a 0.`;
           confirmActions.style.display = "none";
@@ -647,7 +728,7 @@
         }
 
         const minStart = Number(p.MontoMinimo);
-        if (!isNaN(minStart) && monto < minStart){
+        if (!isNaN(minStart) && recarga < minStart){
           boxConfirm.classList.add("show");
           boxConfirm.innerHTML = `El monto mínimo para iniciar esta promoción es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
           confirmActions.style.display = "none";
@@ -669,25 +750,29 @@
           return;
         }
 
-        const platName = platformName(platId);
+        // NUEVO: base de cálculo para finalizar = recarga + bono (total abonado)
+        const bono = computeGiftAmount(p, recarga) ?? 0;
+        const totalAbonado = recarga + bono;
 
-        const minReqLine = p.MontoRequeridoFinalizarEsPorcentaje
-          ? `<b>${fmtPct(p.MontoRequeridoFinalizar)}</b> de la recarga`
-          : `<b class="mono">${fmtMoney(p.MontoRequeridoFinalizar)}</b> Bs`;
+        const { base, minAbs, maxAbs } = finalizeLinesAbs(p, false, recarga, totalAbonado);
 
-        const maxAllowLine = p.MontoMinimoFinalizarEsPorcentaje
-          ? `<b>${fmtPct(p.MontoMinimoFinalizar)}</b> de la recarga`
-          : `<b class="mono">${fmtMoney(p.MontoMinimoFinalizar)}</b> Bs`;
+        const minLine = (minAbs === null) ? "—" : `<b class="mono">${fmtMoney(minAbs)} Bs</b>`;
+        const maxLine = (maxAbs === null) ? "—" : `<b class="mono">${fmtMoney(maxAbs)} Bs</b>`;
 
         boxConfirm.classList.add("show");
         boxConfirm.innerHTML = `
           <b>Confirmación</b><br/>
           Promoción: <b>${promoNombre}</b><br/>
+          Plataforma: <b>${platformName(platId)}</b><br/>
           Acredita en: <b>${regaloId > 0 ? platformName(regaloId) : "—"}</b><br/><br/>
-          Cargarás <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b>.<br/><br/>
-          <b>Condición para finalizar:</b><br/>
-          • <b>Mayor o igual:</b> ${minReqLine}<br/>
-          • <b>Menor o igual:</b> ${maxAllowLine}
+
+          Cargarás <b class="mono">${fmtMoney(recarga)} Bs</b>.<br/>
+          Bono: <b class="mono">${fmtMoney(bono)} Bs</b>.<br/>
+          Total abonado: <b class="mono">${fmtMoney(totalAbonado)} Bs</b>.<br/><br/>
+
+          <b>Condición para finalizar (calculada con el total abonado):</b><br/>
+          • <b>Mayor o igual:</b> ${minLine}<br/>
+          • <b>Menor o igual:</b> ${maxLine}
         `;
 
         confirmActions.style.display = "flex";
@@ -717,7 +802,6 @@
         return;
       }
 
-      // Si el usuario tiene promos activas pero no vino el detalle, no se puede mostrar Registro correctamente.
       if (promosActivasSet.size > 0 && promosActivasDetArr.length === 0){
         content.innerHTML = `
           <div class="empty">
