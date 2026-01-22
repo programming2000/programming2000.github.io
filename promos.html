@@ -162,11 +162,6 @@
       align-self:flex-start;
     }
 
-    .badge-muted{
-      color: var(--muted);
-      background:#fff;
-    }
-
     .section{
       border:1px solid rgba(0,0,0,.06);
       border-radius: 12px;
@@ -263,7 +258,6 @@
       color: var(--text);
     }
 
-    /* Botón finalizar (sobrio, pero claramente distinto) */
     .btn-danger{
       background:#111827;
       color:#fff;
@@ -358,6 +352,19 @@
     .card.card-theme-2 .badge{ background:#eff6ff; }
     .card.card-theme-4 .badge{ background:#fffbeb; }
     .card.card-theme-5 .badge{ background:#f0fdf4; }
+
+    /* Sello sutil para promos de registro */
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      background:#fff;
+      color:var(--muted);
+      width: fit-content;
+    }
   </style>
 </head>
 
@@ -366,12 +373,9 @@
     <div class="header">
       <div>
         <h1>Promociones</h1>
-        <p>
-          Puedes activar promos de <b>recarga</b> (una por plataforma). Si ya tienes una promo activa, podrás
-          <b>finalizarla</b> aquí. Las promos de <b>registro</b> no se activan: solo se muestran para finalizar.
-        </p>
+        <p>Activa promociones en plataformas disponibles. Si ya tienes una promoción activa, podrás finalizarla aquí.</p>
       </div>
-      <div class="count" id="countPill">0</div>
+      <div class="count" id="countPill">0 promos</div>
     </div>
 
     <div id="content"></div>
@@ -391,21 +395,12 @@
       8: "Tienda"
     };
 
-    // IMPORTANTE:
-    // El backend ahora envía:
-    // - promos         => SOLO promos activables (Recarga)
-    // - bloqueadas     => plataformas ocupadas por promos activas (Recarga o Registro)
-    // - promosActivas  => ids de promos activas del usuario (Recarga o Registro)
-    //
-    // Por lo tanto, para poder FINALIZAR promos tipo Registro, la miniapp debe
-    // "materializarlas" a partir de promosActivas. Para eso necesitamos conocer
-    // el detalle de cada promo activa. Como el backend NO lo envía en promos,
-    // la miniapp recibirá un parámetro opcional:
-    //   - promosActivasDetalle: lista JSON de promociones (mismo formato PromoMiniAppDto)
-    // Si no llega, igualmente se podrá enviar "promo_finish" con promoId, pero NO se podrá
-    // renderizar la tarjeta con datos completos (se mostrará una tarjeta mínima).
+    const PROMO_TIPO = {
+      RECARGA: 1,
+      REGISTRO: 2
+    };
 
-    function platformName(id){ return PLATAFORMAS[id] ?? `Producto ${id}`; }
+    function platformName(id){ return PLATAFORMAS[id] ?? "Plataforma"; }
     function platformClass(id){
       if (id === 1) return "chip-apueston";
       if (id === 2) return "chip-metabet";
@@ -430,24 +425,6 @@
       return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
     }
 
-    function fmtDateAny(d){
-      if (!d) return "—";
-      const dt = new Date(d);
-      if (isNaN(dt.getTime())) return String(d);
-      return dt.toLocaleString("es-BO", {
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit"
-      });
-    }
-
-    function isNoEndDate(d){
-      // Maneja DateTimeOffset.MinValue serializado (varía según backend)
-      // Puede venir como "0001-01-01T00:00:00+00:00" o similar.
-      if (!d) return false;
-      const s = String(d);
-      return s.startsWith("0001-01-01");
-    }
-
     function parseJsonParam(paramName){
       const usp = new URLSearchParams(location.search);
       const raw = usp.get(paramName);
@@ -459,57 +436,46 @@
     const bloqueadas = parseJsonParam("bloqueadas") ?? [];
     const bloqueadasSet = new Set((Array.isArray(bloqueadas) ? bloqueadas : []).map(x => Number(x)));
 
-    // Lista de promoId activas del usuario (Recarga o Registro)
     const promosActivas = parseJsonParam("promosActivas") ?? [];
     const promosActivasSet = new Set((Array.isArray(promosActivas) ? promosActivas : []).map(x => Number(x)));
 
-    // Opcional (pero recomendado):
-    // Detalle de promos activas del usuario para poder mostrar también las de Registro.
-    // Formato: array de PromoMiniAppDto (Id, Nro, Nombre, FechaInicio, FechaFin, Parametros)
-    const promosActivasDetalle = parseJsonParam("promosActivasDetalle") ?? [];
-    const detalleById = new Map(
-      (Array.isArray(promosActivasDetalle) ? promosActivasDetalle : [])
-        .map(x => [Number(x?.Id ?? 0), x])
-        .filter(([id]) => id > 0)
-    );
-
-    function computeThreshold(valor, esPorcentaje, recarga){
+    function computeThreshold(valor, esPorcentaje, base){
       const v = Number(valor);
-      const r = Number(recarga);
+      const b = Number(base);
       if (isNaN(v)) return null;
 
       if (esPorcentaje === true){
-        if (isNaN(r) || r <= 0) return null;
-        return r * (v / 100);
+        if (isNaN(b) || b <= 0) return null;
+        return b * (v / 100);
       }
       return v;
     }
 
-    function computeGift(param, recarga){
-      const r = Number(recarga);
-      if (isNaN(r) || r <= 0) return null;
+    function computeGift(param, base){
+      const b = Number(base);
+      if (isNaN(b) || b <= 0) return null;
 
       const giftVal = Number(param.MontoRegalo);
       if (isNaN(giftVal)) return null;
 
-      const regalo = param.MontoRegaloEsPorcentaje ? (r * (giftVal / 100)) : giftVal;
-      const total = r + regalo;
+      const regalo = param.MontoRegaloEsPorcentaje ? (b * (giftVal / 100)) : giftVal;
+      const total = b + regalo;
       return { regalo, total };
     }
 
     function giftBadgeText(param, regaloPlataformaId){
       const plat = platformName(Number(regaloPlataformaId));
       const val = param.MontoRegaloEsPorcentaje ? fmtPct(param.MontoRegalo) : fmtMoney(param.MontoRegalo);
-      return `Regalo: <b>${val}</b> · Acredita en <b>${plat}</b>`;
+      return `Bono: <b>${val}</b> · Acreditado en <b>${plat}</b>`;
     }
 
     function finalizeTextLines(param){
       const minTxt = param.MontoRequeridoFinalizarEsPorcentaje
-        ? `${fmtPct(param.MontoRequeridoFinalizar)} de la recarga`
+        ? `${fmtPct(param.MontoRequeridoFinalizar)} del monto base`
         : `${fmtMoney(param.MontoRequeridoFinalizar)} Bs`;
 
       const maxTxt = param.MontoMinimoFinalizarEsPorcentaje
-        ? `${fmtPct(param.MontoMinimoFinalizar)} de la recarga`
+        ? `${fmtPct(param.MontoMinimoFinalizar)} del monto base`
         : `${fmtMoney(param.MontoMinimoFinalizar)} Bs`;
 
       return { minTxt, maxTxt };
@@ -529,17 +495,21 @@
       return [];
     }
 
-    function renderPromoCard(promo, idx, { forceTaken = false, forceNoActivate = false } = {}){
+    function renderPromoCard(promo, idx){
       const p = promo?.Parametros ?? promo;
 
       const promoId = Number(promo?.Id ?? 0);
-      const isTakenByUser = forceTaken || promosActivasSet.has(promoId);
+      const promoType = Number(p?.Type ?? 0);
 
-      const validIds = getValidIds(p);
+      const isRegistro = promoType === PROMO_TIPO.REGISTRO;
+      const isRecarga  = promoType === PROMO_TIPO.RECARGA;
+
+      const isTakenByUser = promosActivasSet.has(promoId);
+
+      // Para recarga: plataformas aplicables; para registro no hace falta mostrarlas
+      const validIds = isRecarga ? getValidIds(p).map(Number) : [];
       const regaloId = Number(p.ProductoRegaloId);
 
-      // Para promos activables (recarga) se usan plataformas disponibles.
-      // Para promos SOLO-finalizables (registro), no necesitamos activar, solo mostrar datos y bloquear.
       const disponibles = validIds.filter(id => !bloqueadasSet.has(Number(id)));
       const allBlocked = validIds.length > 0 && disponibles.length === 0;
 
@@ -551,117 +521,127 @@
       }).join("");
 
       const { minTxt, maxTxt } = finalizeTextLines(p);
-      const promoNombre = titleCaseEs(promo?.Nombre ?? ("Promo #" + (idx + 1)));
-
-      // Heurística para no mostrar "FechaFin" si viene MinValue
-      const finTxt = isNoEndDate(promo?.FechaFin) ? "Sin fin" : fmtDateAny(promo?.FechaFin);
+      const promoNombre = titleCaseEs(promo?.Nombre ?? "Promoción");
 
       const card = document.createElement("div");
       const themeIndex = (idx % 5) + 1;
       card.className = `card card-theme-${themeIndex}`;
 
-      const canActivate = !forceNoActivate && !isTakenByUser;
+      // Texto “monto base”:
+      // - Recarga: el usuario ingresará un monto
+      // - Registro: el sistema ya otorgó el bono sobre el MontoRegalo
+      const montoBaseLabel = isRegistro ? "Monto base (bono)" : "Monto mínimo";
 
       card.innerHTML = `
         <div class="top">
           <div class="titleBlock">
             <p class="t titleAccent">${promoNombre}</p>
 
+            ${isRegistro ? `<div class="pill">Promoción aplicada automáticamente</div>` : ""}
+
             <div class="badge">${giftBadgeText(p, regaloId)}</div>
 
             <div class="metaRow">
               <div class="metaItem">
-                <span>Vigencia:</span>
-                <b>${fmtDateAny(promo?.FechaInicio)}</b>
-                <span>→</span>
-                <b>${finTxt}</b>
+                <span>${montoBaseLabel}:</span>
+                <b class="mono">${fmtMoney(isRegistro ? p.MontoRegalo : p.MontoMinimo)} Bs</b>
               </div>
 
               <div class="metaItem">
-                <span>Inicia desde:</span>
-                <b class="mono">${fmtMoney(p.MontoMinimo)} Bs</b>
-              </div>
-
-              <div class="metaItem">
-                <span>Acredita en:</span>
+                <span>Acreditado en:</span>
                 <b>${platformName(regaloId)}</b>
               </div>
-
-              ${
-                forceNoActivate
-                  ? `<div class="metaItem"><span class="badge badge-muted">Solo finalizar</span></div>`
-                  : ``
-              }
             </div>
           </div>
         </div>
 
         <div class="section">
+          ${isRecarga ? `
           <div class="row">
-            <p class="label">Aplica a:</p>
+            <p class="label">Puedes activarla en:</p>
             <div class="value">
               <div class="chipsLine">${chipsHtml || `<span class="chip chip-otros">—</span>`}</div>
             </div>
           </div>
+          ` : ""}
 
           <div class="row">
-            <p class="label">Condición para finalizar:</p>
+            <p class="label">Para poder finalizar esta promoción:</p>
             <div class="value">
               <div class="box">
-                <div><b>Mayor o igual:</b> ${minTxt}</div>
-                <div><b>Menor o igual:</b> ${maxTxt}</div>
+                <div><b>Debes alcanzar al menos:</b> ${minTxt}</div>
+                <div><b>Y no superar:</b> ${maxTxt}</div>
               </div>
+              ${isRegistro ? `<div class="note" style="margin-top:8px">
+                Esta promoción se creó automáticamente por ser usuario nuevo. Aquí puedes finalizarla cuando cumplas las condiciones.
+              </div>` : ""}
             </div>
           </div>
         </div>
 
         <div class="actions">
           ${
-            isTakenByUser
-              ? `<button class="btn btn-danger" id="finish_${idx}">Finalizar promo</button>`
-              : `<button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>Activar promo</button>`
+            isRegistro
+              ? `<button class="btn btn-danger" id="finish_${idx}">Finalizar promoción</button>`
+              : (isTakenByUser
+                  ? `<button class="btn btn-danger" id="finish_${idx}">Finalizar promoción</button>`
+                  : `<button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>Activar promoción</button>`)
           }
         </div>
 
-        <div class="warn" id="warn_${idx}">
-          No puedes activar esta promoción porque todas las plataformas aplicables ya tienen una promo activa.
-        </div>
+        ${isRecarga ? `
+          <div class="warn" id="warn_${idx}">
+            No puedes activar esta promoción porque todas las plataformas disponibles ya tienen una promoción activa.
+          </div>
 
-        <div class="panel" id="panel_${idx}">
-          <div class="panelGrid">
-            <div>
-              <div class="note" style="margin-bottom:6px">Monto a cargar</div>
-              <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
+          <div class="panel" id="panel_${idx}">
+            <div class="panelGrid">
+              <div>
+                <div class="note" style="margin-bottom:6px">Monto a cargar</div>
+                <input type="number" inputmode="decimal" placeholder="Ej: 100" id="monto_${idx}">
+              </div>
+              <div>
+                <div class="note" style="margin-bottom:6px">Plataforma</div>
+                <select id="plat_${idx}">
+                  ${
+                    (disponibles.length ? disponibles : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")
+                  }
+                </select>
+              </div>
             </div>
-            <div>
-              <div class="note" style="margin-bottom:6px">Plataforma (solo disponibles)</div>
-              <select id="plat_${idx}">
-                ${
-                  (disponibles.length ? disponibles : []).map(id => `<option value="${id}">${platformName(id)}</option>`).join("")
-                }
-              </select>
+
+            <div class="actions" style="justify-content:space-between">
+              <button class="btn btn-ghost" id="cancel_${idx}">Cancelar</button>
+              <button class="btn btn-primary" id="preview_${idx}">Continuar</button>
+            </div>
+
+            <div class="confirmBox" id="confirm_${idx}"></div>
+
+            <div class="actions" id="confirmActions_${idx}" style="display:none">
+              <button class="btn btn-ghost" id="back_${idx}">Atrás</button>
+              <button class="btn btn-primary" id="send_${idx}">Confirmar y enviar</button>
             </div>
           </div>
-
-          <div class="actions" style="justify-content:space-between">
-            <button class="btn btn-ghost" id="cancel_${idx}">Cancelar</button>
-            <button class="btn btn-primary" id="preview_${idx}">Continuar</button>
-          </div>
-
-          <div class="confirmBox" id="confirm_${idx}"></div>
-
-          <div class="actions" id="confirmActions_${idx}" style="display:none">
-            <button class="btn btn-ghost" id="back_${idx}">Atrás</button>
-            <button class="btn btn-primary" id="send_${idx}">Confirmar y enviar</button>
-          </div>
-        </div>
+        ` : ""}
       `;
+
+      // Eventos comunes (finalizar)
+      const btnFinish = card.querySelector(`#finish_${idx}`);
+      btnFinish?.addEventListener("click", () => {
+        const payload = {
+          event: "promo_finish",
+          promoId: promoId
+        };
+        sendToBot(JSON.stringify(payload));
+      });
+
+      // Si no es recarga, no hay panel de activación ni validaciones
+      if (!isRecarga) return card;
 
       const panel = card.querySelector(`#panel_${idx}`);
       const warn = card.querySelector(`#warn_${idx}`);
 
       const btnActivate = card.querySelector(`#activate_${idx}`);
-      const btnFinish = card.querySelector(`#finish_${idx}`);
 
       const btnCancel = card.querySelector(`#cancel_${idx}`);
       const btnPreview = card.querySelector(`#preview_${idx}`);
@@ -679,20 +659,7 @@
         confirmActions.style.display = "none";
       }
 
-      if (canActivate && allBlocked) warn.classList.add("show");
-
-      // Finalizar promo (incluye registro)
-      btnFinish?.addEventListener("click", () => {
-        const payload = { event: "promo_finish", promoId: promoId };
-        sendToBot(JSON.stringify(payload));
-      });
-
-      // Si la tarjeta es "solo finalizar", deshabilita panel de activar por completo
-      if (!canActivate){
-        panel?.remove();
-        warn?.remove();
-        return card;
-      }
+      if (!isTakenByUser && allBlocked) warn.classList.add("show");
 
       btnActivate?.addEventListener("click", () => {
         if (allBlocked) return;
@@ -722,7 +689,7 @@
         const minStart = Number(p.MontoMinimo);
         if (!isNaN(minStart) && monto < minStart){
           boxConfirm.classList.add("show");
-          boxConfirm.innerHTML = `El monto mínimo para iniciar esta promo es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
+          boxConfirm.innerHTML = `El monto mínimo para activar esta promoción es <b class="mono">${fmtMoney(minStart)} Bs</b>.`;
           confirmActions.style.display = "none";
           return;
         }
@@ -737,13 +704,14 @@
 
         if (bloqueadasSet.has(platId)){
           boxConfirm.classList.add("show");
-          boxConfirm.innerHTML = `Esa plataforma ya tiene una promo activa. Elige otra plataforma disponible.`;
+          boxConfirm.innerHTML = `Esa plataforma ya tiene una promoción activa. Elige otra plataforma.`;
           confirmActions.style.display = "none";
           return;
         }
 
         const platName = platformName(platId);
 
+        // Cálculo mostrado al usuario basado en su recarga
         const minReq = computeThreshold(p.MontoRequeridoFinalizar, !!p.MontoRequeridoFinalizarEsPorcentaje, monto);
         const maxAllow = computeThreshold(p.MontoMinimoFinalizar, !!p.MontoMinimoFinalizarEsPorcentaje, monto);
 
@@ -758,18 +726,17 @@
         boxConfirm.classList.add("show");
         boxConfirm.innerHTML = `
           <b>Confirmación</b><br/>
-          Promo: <b>${promoNombre}</b><br/>
-          Vigencia: <b>${fmtDateAny(promo?.FechaInicio)}</b> → <b>${finTxt}</b><br/>
-          Regalo acredita en: <b>${platformName(regaloId)}</b><br/><br/>
+          Promoción: <b>${promoNombre}</b><br/>
+          Bono acreditado en: <b>${platformName(regaloId)}</b><br/><br/>
 
           Cargarás <b class="mono">${fmtMoney(monto)} Bs</b> en <b>${platName}</b>.<br/><br/>
 
-          <b>Regalo:</b> ${giftLine}<br/>
-          <b>Total a cargar:</b> ${totalLine}<br/><br/>
+          <b>Bono estimado:</b> ${giftLine}<br/>
+          <b>Total estimado:</b> ${totalLine}<br/><br/>
 
-          <b>Para finalizar (calculado con tu recarga):</b><br/>
-          • <b>Mayor o igual:</b> ${minReqLine}<br/>
-          • <b>Menor o igual:</b> ${maxAllowLine}
+          <b>Para poder finalizar (calculado con tu recarga):</b><br/>
+          • <b>Debes alcanzar al menos:</b> ${minReqLine}<br/>
+          • <b>Y no superar:</b> ${maxAllowLine}
         `;
 
         confirmActions.style.display = "flex";
@@ -788,76 +755,16 @@
       return card;
     }
 
-    function buildCardsModel(){
-      // 1) Promos para activar (Recarga)
-      const activables = Array.isArray(promociones) ? promociones : [];
-
-      // 2) Promos activas del usuario (pueden incluir Registro).
-      //    Si tenemos detalle, creamos tarjetas completas.
-      //    Si NO tenemos detalle, mostramos una tarjeta mínima por id activo que no esté en activables.
-      const cards = [];
-
-      // Agrega activables primero
-      activables.forEach(x => cards.push({ kind: "promo", data: x }));
-
-      // PromoIds activos que no están dentro de "promos" (típicamente Registro)
-      const idsEnActivables = new Set(activables.map(x => Number(x?.Id ?? 0)).filter(x => x > 0));
-
-      const activosIds = (Array.isArray(promosActivas) ? promosActivas : [])
-        .map(x => Number(x))
-        .filter(x => x > 0);
-
-      activosIds.forEach(id => {
-        if (idsEnActivables.has(id)) return;
-
-        const det = detalleById.get(id);
-        if (det){
-          cards.push({ kind: "active_detail", data: det });
-          return;
-        }
-
-        // Fallback: tarjeta mínima (solo finalizar)
-        cards.push({
-          kind: "active_min",
-          data: {
-            Id: id,
-            Nombre: `Promo activa #${id}`,
-            FechaInicio: null,
-            FechaFin: null,
-            Parametros: { ProductoRegaloId: 0, ProductosPromocionId: [], MontoMinimo: 0,
-              MontoRequeridoFinalizar: 0, MontoRequeridoFinalizarEsPorcentaje: false,
-              MontoMinimoFinalizar: 0, MontoMinimoFinalizarEsPorcentaje: false,
-              MontoRegalo: 0, MontoRegaloEsPorcentaje: false
-            }
-          }
-        });
-      });
-
-      return cards;
-    }
-
-    function render(){
+    function render(promos){
       const content = document.getElementById("content");
+      const list = Array.isArray(promos) ? promos : [];
 
-      const cardsModel = buildCardsModel();
+      document.getElementById("countPill").textContent = `${list.length} promo${list.length===1?"":"s"}`;
 
-      // Conteo útil: cuántas activables + cuántas activas (finalizables)
-      const activablesCount = (Array.isArray(promociones) ? promociones.length : 0);
-      const activasCount = promosActivasSet.size;
-
-      document.getElementById("countPill").textContent =
-        `${activablesCount} activable${activablesCount===1?"":"s"} · ${activasCount} activa${activasCount===1?"":"s"}`;
-
-      if (cardsModel.length === 0){
+      if (list.length === 0){
         content.innerHTML = `
           <div class="empty">
-            No se recibieron promociones.<br/><br/>
-            Parámetros esperados:<br/>
-            • <b>promos</b> = lista JSON de promociones activables (recarga)<br/>
-            • <b>bloqueadas</b> = lista JSON de ids de plataformas ocupadas (recarga o registro)<br/>
-            • <b>promosActivas</b> = lista JSON de ids de promos activas del usuario (recarga o registro)<br/><br/>
-            Opcional (recomendado para mostrar promos de registro con detalle):<br/>
-            • <b>promosActivasDetalle</b> = lista JSON con el detalle de promos activas del usuario
+            No hay promociones para mostrar en este momento.
           </div>
         `;
         return;
@@ -865,23 +772,13 @@
 
       const grid = document.createElement("div");
       grid.className = "grid";
-
-      let idx = 0;
-      cardsModel.forEach(item => {
-        if (item.kind === "promo"){
-          grid.appendChild(renderPromoCard(item.data, idx++, { forceTaken: false, forceNoActivate: false }));
-          return;
-        }
-
-        // Promos activas que pueden ser Registro: SOLO finalizar (no activar)
-        grid.appendChild(renderPromoCard(item.data, idx++, { forceTaken: true, forceNoActivate: true }));
-      });
+      list.forEach((p, i) => grid.appendChild(renderPromoCard(p, i)));
 
       content.innerHTML = "";
       content.appendChild(grid);
     }
 
-    render();
+    render(promociones);
   </script>
 </body>
 </html>
