@@ -228,6 +228,61 @@
   <script>
     const $ = (id) => document.getElementById(id);
 
+    // 1) Normaliza IDs para que Imperial funcione sin importar cómo llegue
+    function normalizePlatformId(raw) {
+      const s = (raw || '').trim().toLowerCase();
+      if (!s) return '';
+
+      // Imperial (mismas reglas que Apueston): aceptar varias formas comunes
+      if (
+        s === 'imperial' || s === 'imp' || s.startsWith('imperial_') ||
+        s === 'impnormal' || s === 'imppromo' || s.startsWith('imp_')
+      ) return 'imperial';
+
+      // Apueston (por si llegan variantes)
+      if (
+        s === 'apueston' || s === 'apu' || s.startsWith('apueston_') ||
+        s === 'apunormal' || s === 'apupromo' || s.startsWith('apu_')
+      ) return 'apueston';
+
+      // Meta / Metabet (por si llegan variantes)
+      if (s === 'metabet' || s === 'meta' || s.startsWith('meta_')) return 'metabet';
+
+      // PPP / PPPoker (por si llegan variantes)
+      if (s === 'ppp' || s === 'pppoker' || s.startsWith('ppp_')) return 'ppp';
+
+      // Default: dejar como está
+      return s;
+    }
+
+    // Para construir llaves de usuario, usamos una clave canónica por plataforma
+    function canonicalKey(platformId) {
+      const id = normalizePlatformId(platformId);
+      if (id === 'apueston') return 'apu';      // compat con usr_apu*
+      if (id === 'imperial') return 'imp';      // compat con usr_imp*
+      if (id === 'metabet') return 'meta';      // compat con usr_meta*
+      if (id === 'ppp') return 'ppp';           // compat con usr_ppp*
+      return id;
+    }
+
+    // Busca un valor en los query layers por varias llaves posibles (primer match gana)
+    function pickFirst(layers, keys) {
+      for (const key of keys) {
+        for (const qs of layers) {
+          const v = qs.get(key);
+          if (v !== null && String(v).trim() !== '') return String(v).trim();
+        }
+      }
+      // Si existe la llave pero vacío, respetamos vacío (para warnings)
+      for (const key of keys) {
+        for (const qs of layers) {
+          const v = qs.get(key);
+          if (v !== null) return String(v || '').trim();
+        }
+      }
+      return '';
+    }
+
     function getParams() {
       const layers = [];
       try { layers.push(new URLSearchParams(location.search)); } catch {}
@@ -251,17 +306,40 @@
       const platformsRaw = g('platforms') ?? g('plataformas') ?? '';
       const platformIds = platformsRaw
         .split(',')
-        .map(p => p.trim())
+        .map(p => normalizePlatformId(p))
         .filter(p => p.length > 0);
 
+      // quitar duplicados por normalización (ej: "imp,imperial")
+      const uniquePlatformIds = Array.from(new Set(platformIds));
+
       const users = {};
-      for (const id of platformIds) {
-        const keyId = id.trim();
-        const v = g('usr_' + keyId) ?? g('user_' + keyId) ?? '';
-        users[keyId] = (v || '').trim();
+      for (const pid of uniquePlatformIds) {
+        const canon = canonicalKey(pid);
+
+        // Aceptamos varias llaves:
+        // - usr_<idNormalizado>
+        // - user_<idNormalizado>
+        // - usr_<canon> / user_<canon> (ej: usr_imp, usr_apu)
+        // - usr_<canon>Normal / usr_<canon>Promo (si tu backend lo manda así)
+        // - usr_<id>_normal / usr_<id>_promo (alternativas)
+        const keys = [
+          `usr_${pid}`, `user_${pid}`,
+          `usr_${canon}`, `user_${canon}`,
+
+          `usr_${canon}Normal`, `user_${canon}Normal`,
+          `usr_${canon}Promo`,  `user_${canon}Promo`,
+
+          `usr_${pid}_normal`, `user_${pid}_normal`,
+          `usr_${pid}_promo`,  `user_${pid}_promo`,
+
+          `usr_${canon}_normal`, `user_${canon}_normal`,
+          `usr_${canon}_promo`,  `user_${canon}_promo`,
+        ];
+
+        users[pid] = pickFirst(layers, keys);
       }
 
-      return { platformIds, users };
+      return { platformIds: uniquePlatformIds, users };
     }
 
     const state = {
@@ -271,8 +349,16 @@
     };
 
     function prettyPlatformName(id) {
-      if (!id) return '';
-      return id
+      const nid = normalizePlatformId(id);
+      if (!nid) return '';
+
+      // nombres bonitos (incluye Imperial)
+      if (nid === 'apueston') return 'Apueston';
+      if (nid === 'imperial') return 'Imperial';
+      if (nid === 'metabet') return 'Metabet';
+      if (nid === 'ppp') return 'PPP';
+
+      return nid
         .replace(/_/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
@@ -463,9 +549,7 @@
       if (state.telegramSupported) {
         try {
           Telegram.WebApp.ready();
-        } catch (e) {
-          // ignoramos error
-        }
+        } catch (e) {}
       } else {
         showNotSupportedMessage();
       }
@@ -475,11 +559,8 @@
 
       $('monto').addEventListener('input', (e) => { sanitizeMontoInput(e.target); validate(); });
 
-      // En lugar de enviar directo, abrimos la confirmación
       $('btnEnviar').addEventListener('click', () => {
-        if (validate()) {
-          openConfirm();
-        }
+        if (validate()) openConfirm();
       });
 
       $('btnCancelConfirm').addEventListener('click', () => {
