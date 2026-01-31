@@ -345,7 +345,7 @@
       const usp = new URLSearchParams(location.search);
       const raw = usp.get(paramName);
       if (!raw) return null;
-      try { return JSON.parse(decodeURIComponent(raw)); } catch { return null; }
+      try { return JSON.parse(raw); } catch { return null; }
     }
 
     // promos: activables (solo Recarga)
