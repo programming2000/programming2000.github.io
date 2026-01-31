@@ -232,28 +232,33 @@
     function normalizePlatformId(raw) {
       const s = (raw || '').trim().toLowerCase();
       if (!s) return '';
-
+    
+      // ✅ PPP como plataformas distintas (NO colapsar)
+      // Mantener exactamente ppp_bol y ppp_sol
+      if (s === 'ppp_bol' || s === 'ppp_sol') return s;
+    
       // Imperial (mismas reglas que Apueston): aceptar varias formas comunes
       if (
         s === 'imperial' || s === 'imp' || s.startsWith('imperial_') ||
         s === 'impnormal' || s === 'imppromo' || s.startsWith('imp_')
       ) return 'imperial';
-
+    
       // Apueston (por si llegan variantes)
       if (
         s === 'apueston' || s === 'apu' || s.startsWith('apueston_') ||
         s === 'apunormal' || s === 'apupromo' || s.startsWith('apu_')
       ) return 'apueston';
-
+    
       // Meta / Metabet (por si llegan variantes)
       if (s === 'metabet' || s === 'meta' || s.startsWith('meta_')) return 'metabet';
-
-      // PPP / PPPoker (por si llegan variantes)
-      if (s === 'ppp' || s === 'pppoker' || s.startsWith('ppp_')) return 'ppp';
-
+    
+      // PPP genérico (solo si llega "ppp" o "pppoker")
+      if (s === 'ppp' || s === 'pppoker') return 'ppp';
+    
       // Default: dejar como está
       return s;
-    }
+  }
+
 
     // Para construir llaves de usuario, usamos una clave canónica por plataforma
     function canonicalKey(platformId) {
@@ -261,9 +266,13 @@
       if (id === 'apueston') return 'apu';      // compat con usr_apu*
       if (id === 'imperial') return 'imp';      // compat con usr_imp*
       if (id === 'metabet') return 'meta';      // compat con usr_meta*
-      if (id === 'ppp') return 'ppp';           // compat con usr_ppp*
+    
+      // ✅ cualquier PPP* comparte el mismo canon para usuario
+      if (id === 'ppp' || id === 'ppp_bol' || id === 'ppp_sol') return 'ppp';
+    
       return id;
     }
+
 
     // Busca un valor en los query layers por varias llaves posibles (primer match gana)
     function pickFirst(layers, keys) {
@@ -323,18 +332,28 @@
         // - usr_<canon>Normal / usr_<canon>Promo (si tu backend lo manda así)
         // - usr_<id>_normal / usr_<id>_promo (alternativas)
         const keys = [
+          // 1) llave exacta de la plataforma (ej: usr_ppp_bol / usr_ppp_sol)
           `usr_${pid}`, `user_${pid}`,
+        
+          // 2) llave canónica (ej: usr_ppp, usr_apu, usr_imp, usr_meta)
           `usr_${canon}`, `user_${canon}`,
-
+        
+          // 3) fallback extra SOLO para PPP: si no vino usr_ppp_bol/sol, usar usr_ppp
+          ...(pid === 'ppp_bol' || pid === 'ppp_sol'
+            ? [`usr_ppp`, `user_ppp`]
+            : []),
+        
+          // 4) variantes legacy
           `usr_${canon}Normal`, `user_${canon}Normal`,
           `usr_${canon}Promo`,  `user_${canon}Promo`,
-
+        
           `usr_${pid}_normal`, `user_${pid}_normal`,
           `usr_${pid}_promo`,  `user_${pid}_promo`,
-
+        
           `usr_${canon}_normal`, `user_${canon}_normal`,
           `usr_${canon}_promo`,  `user_${canon}_promo`,
         ];
+
 
         users[pid] = pickFirst(layers, keys);
       }
@@ -351,13 +370,16 @@
     function prettyPlatformName(id) {
       const nid = normalizePlatformId(id);
       if (!nid) return '';
-
-      // nombres bonitos (incluye Imperial)
+    
       if (nid === 'apueston') return 'Apueston';
       if (nid === 'imperial') return 'Imperial';
       if (nid === 'metabet') return 'Metabet';
+    
+      // ✅ PPP diferenciado
+      if (nid === 'ppp_bol') return 'PPP (BOL)';
+      if (nid === 'ppp_sol') return 'PPP (SOL)';
       if (nid === 'ppp') return 'PPP';
-
+    
       return nid
         .replace(/_/g, ' ')
         .replace(/\s+/g, ' ')
