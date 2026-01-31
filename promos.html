@@ -364,6 +364,21 @@
     // { baseMonto: 10, productoPromocionId: 9 } para registro, etc.
     const promosActivasDet = parseJsonParam("promosActivasDet") ?? [];
     const promosActivasDetArr = Array.isArray(promosActivasDet) ? promosActivasDet : [];
+    // === DEBUG LOGS (pon esto aquí) ===
+console.log("URL length:", location.href.length);
+console.log("URL:", location.href);
+
+const uspDbg = new URLSearchParams(location.search);
+console.log("has promos?", uspDbg.has("promos"));
+console.log("raw promos length:", (uspDbg.get("promos") || "").length);
+console.log("raw promos head:", (uspDbg.get("promos") || "").slice(0, 120));
+
+console.log("promociones count:", (promociones || []).length);
+console.log("bloqueadas:", bloqueadas);
+console.log("promosActivas:", promosActivas);
+console.log("promosActivasDet count:", (promosActivasDetArr || []).length);
+console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id));
+// === END DEBUG LOGS ===
 
     function sendToBot(payload){
       try { Telegram.WebApp.sendData(payload); }
