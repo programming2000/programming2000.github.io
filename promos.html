@@ -500,6 +500,25 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
         maxAbs
       };
     }
+    function computeThresholdRecarga(valor, esPorcentaje, recarga, bono){
+    const v = Number(valor);
+    const r = Number(recarga);
+    const b = Number(bono);
+  
+    if (isNaN(v)) return null;
+  
+    // Si NO es porcentaje, es un monto absoluto (no sumes bono automáticamente)
+    if (esPorcentaje !== true) return v;
+  
+    if (isNaN(r) || r < 0) return null;
+  
+    // Regla: % aplicado a la recarga, y luego se suma el bono una vez
+    const pctPart = r * (v / 100);
+    const bonoPart = (!isNaN(b) && b >= 0) ? b : 0;
+  
+    return pctPart + bonoPart;
+  }
+
 
     function giftBadgeText(param){
       const regaloId = Number(param.ProductoRegaloId || 0);
@@ -767,9 +786,21 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
 
         // NUEVO: base de cálculo para finalizar = recarga + bono (total abonado)
         const bono = computeGiftAmount(p, recarga) ?? 0;
-        const totalAbonado = recarga + bono;
 
-        const { base, minAbs, maxAbs } = finalizeLinesAbs(p, false, recarga, totalAbonado);
+        // NUEVO: para recarga, umbrales = (% de recarga) + bono
+        const minAbs = computeThresholdRecarga(
+          p.MontoRequeridoFinalizar,
+          !!p.MontoRequeridoFinalizarEsPorcentaje,
+          recarga,
+          bono
+        );
+        
+        const maxAbs = computeThresholdRecarga(
+          p.MontoMinimoFinalizar,
+          !!p.MontoMinimoFinalizarEsPorcentaje,
+          recarga,
+          bono
+        );
 
         const minLine = (minAbs === null) ? "—" : `<b class="mono">${fmtMoney(minAbs)} Bs</b>`;
         const maxLine = (maxAbs === null) ? "—" : `<b class="mono">${fmtMoney(maxAbs)} Bs</b>`;
