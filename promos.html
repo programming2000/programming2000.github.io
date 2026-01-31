@@ -341,6 +341,7 @@
       return `${Number(n).toLocaleString("es-BO", { maximumFractionDigits: 2 })}%`;
     }
 
+    // ✅ FIX: NO hacer decodeURIComponent aquí (URLSearchParams ya entrega decodificado)
     function parseJsonParam(paramName){
       const usp = new URLSearchParams(location.search);
       const raw = usp.get(paramName);
@@ -360,25 +361,8 @@
     const promosActivasSet = new Set((Array.isArray(promosActivas) ? promosActivas : []).map(x => Number(x)));
 
     // promosActivasDet: detalle (Recarga y Registro)
-    // OPCIONAL extra: si backend lo envía, aquí también pueden venir los datos de ClientePromocion:
-    // { baseMonto: 10, productoPromocionId: 9 } para registro, etc.
     const promosActivasDet = parseJsonParam("promosActivasDet") ?? [];
     const promosActivasDetArr = Array.isArray(promosActivasDet) ? promosActivasDet : [];
-    // === DEBUG LOGS (pon esto aquí) ===
-console.log("URL length:", location.href.length);
-console.log("URL:", location.href);
-
-const uspDbg = new URLSearchParams(location.search);
-console.log("has promos?", uspDbg.has("promos"));
-console.log("raw promos length:", (uspDbg.get("promos") || "").length);
-console.log("raw promos head:", (uspDbg.get("promos") || "").slice(0, 120));
-
-console.log("promociones count:", (promociones || []).length);
-console.log("bloqueadas:", bloqueadas);
-console.log("promosActivas:", promosActivas);
-console.log("promosActivasDet count:", (promosActivasDetArr || []).length);
-console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id));
-// === END DEBUG LOGS ===
 
     function sendToBot(payload){
       try { Telegram.WebApp.sendData(payload); }
@@ -397,12 +381,6 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
       const promo = obj ?? {};
       const rawParams = pick(promo, "Parametros", "parametros", "ParametrosModel", "parametrosModel") ?? promo;
 
-      // "ClientePromocion" opcional para promos activas (muy recomendado para cálculos exactos)
-      // Espera algo como:
-      //   Cliente = { ... }
-      //   ClientePromoParametros = { monto: 10, productoPromocionId: 9, type:2 }
-      // o:
-      //   BaseMonto = 10, ProductoPromocionId = 9 (ya "Nro")
       const rawClienteParams =
         pick(promo, "ClientePromocion", "clientePromocion", "ClientePromo", "clientePromo", "ClientePromoParametros", "clientePromoParametros") ??
         pick(promo, "ClienteParametros", "clienteParametros");
@@ -423,8 +401,6 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
         MontoRequeridoFinalizarEsPorcentaje: !!pick(rawParams, "MontoRequeridoFinalizarEsPorcentaje", "montoRequeridoFinalizarEsPorcentaje"),
 
         // Campos opcionales de instancia (ClientePromocion):
-        // Para Registro: baseMonto = bono real abonado (monto)
-        // Para Recarga: baseMonto = total abonado al usuario (recarga + bono) si aplica
         BaseMonto: Number(pick(rawClienteParams, "BaseMonto", "baseMonto", "monto", "Monto") ?? NaN),
         ProductoPromocionId: Number(pick(rawClienteParams, "ProductoPromocionId", "productoPromocionId") ?? NaN),
         RecargaMonto: Number(pick(rawClienteParams, "RecargaMonto", "recargaMonto") ?? NaN)
@@ -452,33 +428,10 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
       return giftVal;
     }
 
-    // Base para condiciones:
-    // - Registro: base = bono real abonado (ClientePromocion.monto)
-    // - Recarga: base = recarga + bono (total abonado), porque tus reglas indican que el usuario recibe recarga+bono
-    //   y tú quieres que el % se calcule sobre ese total.
-    function getBaseForFinalize(param, isRegistro, recargaMonto, baseMontoFromServer){
-      // Si backend te manda BaseMonto (ideal), úsalo primero.
-      const baseSrv = Number(baseMontoFromServer);
-      if (!isNaN(baseSrv) && baseSrv >= 0) return baseSrv;
-
-      if (isRegistro){
-        // Fallback: si no vino, usamos MontoRegalo como aproximación (regla) aunque no siempre es exacta
-        return Number(param.MontoRegalo) || 0;
-      }
-
-      // Recarga: necesitamos monto de recarga + bono
-      const r = Number(recargaMonto);
-      const gift = computeGiftAmount(param, r) ?? 0;
-      if (!isNaN(r) && r > 0) return r + gift;
-
-      // si no hay recargaMonto, al menos no romper:
-      return 0;
-    }
-
+    // Registro: umbrales según "base" (bono abonado)
     function computeThresholdAbs(valor, esPorcentaje, base){
       const v = Number(valor);
       const b = Number(base);
-
       if (isNaN(v)) return null;
 
       if (esPorcentaje === true){
@@ -488,37 +441,41 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
       return v;
     }
 
-    function finalizeLinesAbs(param, isRegistro, recargaMonto, baseMontoFromServer){
-      const base = getBaseForFinalize(param, isRegistro, recargaMonto, baseMontoFromServer);
+    // ✅ NUEVO: Recarga => umbral porcentaje = (% de lo cargado) + bono
+    // Ej: recarga 100, bono 10, requerido 200% => 100*2 + 10 = 210
+    function computeThresholdRecarga(valor, esPorcentaje, recarga, bono){
+      const v = Number(valor);
+      const r = Number(recarga);
+      const b = Number(bono);
 
+      if (isNaN(v)) return null;
+
+      // Si no es porcentaje, se interpreta como valor absoluto "tal cual"
+      if (esPorcentaje !== true) return v;
+
+      if (isNaN(r) || r < 0) return null;
+
+      const pctPart = r * (v / 100);
+      const bonoPart = (!isNaN(b) && b >= 0) ? b : 0;
+
+      return pctPart + bonoPart;
+    }
+
+    // Registro: base de cálculo (si backend manda BaseMonto, mejor)
+    function getBaseForRegistro(param, baseMontoFromServer){
+      const baseSrv = Number(baseMontoFromServer);
+      if (!isNaN(baseSrv) && baseSrv >= 0) return baseSrv;
+
+      // Fallback: aproximación
+      return Number(param.MontoRegalo) || 0;
+    }
+
+    function finalizeLinesRegistro(param, baseMontoFromServer){
+      const base = getBaseForRegistro(param, baseMontoFromServer);
       const minAbs = computeThresholdAbs(param.MontoRequeridoFinalizar, !!param.MontoRequeridoFinalizarEsPorcentaje, base);
       const maxAbs = computeThresholdAbs(param.MontoMinimoFinalizar, !!param.MontoMinimoFinalizarEsPorcentaje, base);
-
-      return {
-        base,
-        minAbs,
-        maxAbs
-      };
+      return { base, minAbs, maxAbs };
     }
-    function computeThresholdRecarga(valor, esPorcentaje, recarga, bono){
-    const v = Number(valor);
-    const r = Number(recarga);
-    const b = Number(bono);
-  
-    if (isNaN(v)) return null;
-  
-    // Si NO es porcentaje, es un monto absoluto (no sumes bono automáticamente)
-    if (esPorcentaje !== true) return v;
-  
-    if (isNaN(r) || r < 0) return null;
-  
-    // Regla: % aplicado a la recarga, y luego se suma el bono una vez
-    const pctPart = r * (v / 100);
-    const bonoPart = (!isNaN(b) && b >= 0) ? b : 0;
-  
-    return pctPart + bonoPart;
-  }
-
 
     function giftBadgeText(param){
       const regaloId = Number(param.ProductoRegaloId || 0);
@@ -575,21 +532,17 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
       const regaloId = Number(p.ProductoRegaloId || 0);
 
       // Para Registro:
-      // - baseMonto ideal viene de ClientePromocion.Parametros.monto (abonado real)
-      // - productoPromocionId ideal viene de ClientePromocion.Parametros.productoPromocionId (donde se abonó)
       const baseMontoRegistro = !isNaN(p.BaseMonto) ? p.BaseMonto : NaN;
       const productoPromocionId = !isNaN(p.ProductoPromocionId) ? p.ProductoPromocionId : NaN;
 
       const card = document.createElement("div");
       card.className = "card";
 
-      // Texto de finalización: en vez de "200% de la recarga", mostramos Bs calculado con la base.
-      // - Registro: base = bono abonado
-      // - Recarga: en preview usaremos base = recarga + bono; aquí sin monto recarga no se puede fijar Bs final,
-      //   pero para el usuario es mejor mostrar regla y decir que el cálculo se verá al elegir monto.
       let finalizeBlockHtml = "";
+
       if (isRegistro){
-        const { base, minAbs, maxAbs } = finalizeLinesAbs(p, true, NaN, baseMontoRegistro);
+        const { base, minAbs, maxAbs } = finalizeLinesRegistro(p, baseMontoRegistro);
+
         finalizeBlockHtml = `
           <div class="box">
             <div><b>Mayor o igual:</b> <b class="mono">${(minAbs === null ? "—" : fmtMoney(minAbs))} Bs</b></div>
@@ -598,14 +551,20 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
           </div>
         `;
       } else {
-        // Recarga: mostramos la regla, y en la confirmación mostramos Bs exacto (base = recarga + bono)
-        const minRule = p.MontoRequeridoFinalizarEsPorcentaje ? `${fmtPct(p.MontoRequeridoFinalizar)} del total abonado` : `${fmtMoney(p.MontoRequeridoFinalizar)} Bs`;
-        const maxRule = p.MontoMinimoFinalizarEsPorcentaje ? `${fmtPct(p.MontoMinimoFinalizar)} del total abonado` : `${fmtMoney(p.MontoMinimoFinalizar)} Bs`;
+        // ✅ FIX (texto): Recarga => "% de lo cargado + bono"
+        const minRule = p.MontoRequeridoFinalizarEsPorcentaje
+          ? `${fmtPct(p.MontoRequeridoFinalizar)} de lo cargado + bono`
+          : `${fmtMoney(p.MontoRequeridoFinalizar)} Bs`;
+
+        const maxRule = p.MontoMinimoFinalizarEsPorcentaje
+          ? `${fmtPct(p.MontoMinimoFinalizar)} de lo cargado + bono`
+          : `${fmtMoney(p.MontoMinimoFinalizar)} Bs`;
 
         finalizeBlockHtml = `
           <div class="box">
             <div><b>Mayor o igual:</b> ${minRule}</div>
             <div><b>Menor o igual:</b> ${maxRule}</div>
+            <div class="note" style="margin-top:4px">Regla: (% de lo cargado) + bono</div>
           </div>
         `;
       }
@@ -664,6 +623,7 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
 
         <div class="actions">
           ${showFinish ? `<button class="btn btn-danger" id="finish_${idx}">Finalizar promoción</button>` : ""}
+
           ${showActivate ? `<button class="btn btn-primary" id="activate_${idx}" ${allBlocked ? "disabled" : ""}>Activar promoción</button>` : ""}
         </div>
 
@@ -784,17 +744,17 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
           return;
         }
 
-        // NUEVO: base de cálculo para finalizar = recarga + bono (total abonado)
+        // ✅ FIX (fórmula): Recarga => umbrales = (% de lo cargado) + bono
         const bono = computeGiftAmount(p, recarga) ?? 0;
+        const totalAbonado = recarga + bono;
 
-        // NUEVO: para recarga, umbrales = (% de recarga) + bono
         const minAbs = computeThresholdRecarga(
           p.MontoRequeridoFinalizar,
           !!p.MontoRequeridoFinalizarEsPorcentaje,
           recarga,
           bono
         );
-        
+
         const maxAbs = computeThresholdRecarga(
           p.MontoMinimoFinalizar,
           !!p.MontoMinimoFinalizarEsPorcentaje,
@@ -816,9 +776,12 @@ console.log("promosActivasDet ids:", promosActivasDetArr.map(x => x?.Id ?? x?.id
           Bono: <b class="mono">${fmtMoney(bono)} Bs</b>.<br/>
           Total abonado: <b class="mono">${fmtMoney(totalAbonado)} Bs</b>.<br/><br/>
 
-          <b>Condición para finalizar (calculada con el total abonado):</b><br/>
+          <b>Condición para finalizar:</b><br/>
           • <b>Mayor o igual:</b> ${minLine}<br/>
-          • <b>Menor o igual:</b> ${maxLine}
+          • <b>Menor o igual:</b> ${maxLine}<br/>
+          <div class="note" style="margin-top:6px">
+            Regla: (% de lo cargado) + bono
+          </div>
         `;
 
         confirmActions.style.display = "flex";
