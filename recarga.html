@@ -120,8 +120,12 @@
       cobroEnabled:false
     };
 
-    function currentMin(){return state.modo==='cobro'&&!Number.isNaN(state.minCobro)?state.minCobro:state.min;}
-    function currentMax(){return state.modo==='cobro'&&!Number.isNaN(state.maxCobro)?state.maxCobro:state.max;}
+    function currentMin(){
+  return state.modo === 'cobro' ? state.minCobro : state.min;     // minCobro != minRecarga
+}
+function currentMax(){
+  return state.modo === 'cobro' ? state.maxCobro : state.max;     // maxCobro != maxRecarga
+}
 
     function updateTitle(){
       const titulo=state.modo==='recarga'?state.titles.recarga:state.titles.cobro;
@@ -137,23 +141,20 @@
       shouldShow?group.classList.remove('hidden'):group.classList.add('hidden');
     }
     function updateRangeLabels(){
-  const mn = currentMin();
-  const mx = currentMax();
+      const mn = currentMin();
+      const mx = currentMax();
+    
+      const isCobro = state.modo === 'cobro';
+      const hasMnCobro = !Number.isNaN(state.minCobro);
+      const hasMxCobro = !Number.isNaN(state.maxCobro);
+    
+      // Caso especial: en cobro y maxCobro < minCobro => NO mostrar maxCobro
+      const hideMax = isCobro && hasMnCobro && hasMxCobro && state.maxCobro < state.minCobro;
+    
+      $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
+      $('maxLabel').textContent = (hideMax || Number.isNaN(mx)) ? '—' : mx;
+    }
 
-  // Caso especial: en cobro y maxCobro < minCobro
-  const hideMax = state.modo === 'cobro'
-    && !Number.isNaN(state.minCobro)
-    && !Number.isNaN(state.maxCobro)
-    && state.maxCobro < state.minCobro;
-
-  $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
-
-  if (hideMax) {
-    $('maxLabel').textContent = '—';
-  } else {
-    $('maxLabel').textContent = Number.isNaN(mx) ? '—' : mx;
-  }
-}
     function toggleUsuarioEditable(){
       const inp=$('usuario');
       if(state.modo==='cobro'){
