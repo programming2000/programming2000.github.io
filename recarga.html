@@ -137,10 +137,23 @@
       shouldShow?group.classList.remove('hidden'):group.classList.add('hidden');
     }
     function updateRangeLabels(){
-      const mn=currentMin();const mx=currentMax();
-      $('minLabel').textContent=Number.isNaN(mn)?'—':mn;
-      $('maxLabel').textContent=Number.isNaN(mx)?'—':mx;
-    }
+  const mn = currentMin();
+  const mx = currentMax();
+
+  // Caso especial: en cobro y maxCobro < minCobro
+  const hideMax = state.modo === 'cobro'
+    && !Number.isNaN(state.minCobro)
+    && !Number.isNaN(state.maxCobro)
+    && state.maxCobro < state.minCobro;
+
+  $('minLabel').textContent = Number.isNaN(mn) ? '—' : mn;
+
+  if (hideMax) {
+    $('maxLabel').textContent = '—';
+  } else {
+    $('maxLabel').textContent = Number.isNaN(mx) ? '—' : mx;
+  }
+}
     function toggleUsuarioEditable(){
       const inp=$('usuario');
       if(state.modo==='cobro'){
