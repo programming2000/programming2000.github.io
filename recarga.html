@@ -154,15 +154,32 @@
       }
     }
     function updateCobroNote(){
-      const note=$('cobroNote');
-      const mx=state.maxCobro;
-      const m=parseIntAmount($('monto').value);
-      const show=state.modo==='cobro'&&!Number.isNaN(mx)&&!Number.isNaN(m)&&m>mx;
-      if(show){
-        note.textContent=`Para montos mayores a ${mx} Bs, se solicitará aprobación del administrador.`;
-        note.classList.remove('hidden');
-      }else{note.classList.add('hidden');note.textContent='';}
+  const note = $('cobroNote');
+  const mx = state.maxCobro;
+  const mn = state.minCobro;
+  const m  = parseIntAmount($('monto').value);
+
+  const inCobro = state.modo === 'cobro';
+  const hasMx   = !Number.isNaN(mx);
+  const hasMn   = !Number.isNaN(mn);
+  const hasM    = !Number.isNaN(m);
+
+  const show = inCobro && hasMx && hasM && m > mx;
+
+  if (show) {
+    // Caso especial: maxCobro < minCobro
+    if (hasMn && mx < mn) {
+      note.textContent = `Para cobros en esta plataforma se solicitará la aprobación del administrador.`;
+    } else {
+      note.textContent = `Para montos mayores a ${mx} Bs, se solicitará aprobación del administrador.`;
     }
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+    note.textContent = '';
+  }
+}
+
     function validate(){
       const m=parseIntAmount($('monto').value);
       let ok=true;const mn=currentMin();const mx=currentMax();
